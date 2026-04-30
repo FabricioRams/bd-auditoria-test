@@ -1,6 +1,6 @@
 -- =============================================================================
 -- SISTEMA DE AUDITORÍA NO INVASIVO PARA POSTGRESQL
--- DBA Sénior Script | Versión 1.0
+-- DBA | Versión 1.0
 -- Compatibilidad: PostgreSQL 12+
 -- =============================================================================
 
