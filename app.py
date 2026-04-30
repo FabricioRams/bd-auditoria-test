@@ -41,6 +41,56 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# ==========================================
+# 0. SISTEMA DE SEGURIDAD (LOGIN)
+# ==========================================
+# Inicializar el estado de la sesión si no existe
+if 'autenticado' not in st.session_state:
+    st.session_state['autenticado'] = False
+
+def verificar_credenciales(usuario, contraseña):
+    # Diccionario de credenciales permitidas
+    usuarios_permitidos = {
+        "fabricio": "admin123",
+        "rodrigo": "dev456",
+        "auditor_externo": "upt2026"
+    }
+    # Verificación
+    if usuario in usuarios_permitidos and usuarios_permitidos[usuario] == contraseña:
+        return True
+    return False
+
+# Si no está autenticado, mostrar pantalla de login y detener el resto de la app
+if not st.session_state['autenticado']:
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 2, 1])
+    
+    with col2:
+        st.markdown("<h2 style='text-align: center;'>🔒 Acceso Restringido</h2>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; color: gray;'>Sistema de Auditoría de Base de Datos</p>", unsafe_allow_html=True)
+        
+        # Formulario de Login
+        with st.form("login_form"):
+            usuario_input = st.text_input("Usuario")
+            password_input = st.text_input("Contraseña", type="password")
+            submit_btn = st.form_submit_button("Ingresar al Dashboard", use_container_width=True)
+            
+            if submit_btn:
+                if verificar_credenciales(usuario_input, password_input):
+                    st.session_state['autenticado'] = True
+                    st.session_state['usuario_actual'] = usuario_input
+                    st.rerun() # Recarga la página para mostrar el dashboard
+                else:
+                    st.error(" Credenciales incorrectas. Acceso denegado.")
+    
+    # st.stop() es la magia: evita que el código de abajo (el dashboard) se ejecute
+    st.stop() 
+
+
+# ==========================================
+# A PARTIR DE AQUÍ VA TODO EL CÓDIGO DE TU DASHBOARD (El que pegaste antes)
+# ==========================================
+
 # --- CARGA DE DATOS ---
 try:
     df = load_logs()
@@ -58,6 +108,15 @@ if df.empty:
 # 1. BARRA LATERAL (FILTROS AVANZADOS)
 # ==========================================
 st.sidebar.header("Filtros Avanzados")
+
+# --- PANEL DE USUARIO (En la barra lateral) ---
+st.sidebar.info(f" Auditor logueado: **{st.session_state['usuario_actual']}**")
+
+if st.sidebar.button(" Cerrar Sesión", use_container_width=True):
+    st.session_state['autenticado'] = False
+    st.rerun()
+
+st.sidebar.markdown("---")
 
 # Filtro: Rango de Fechas
 fecha_min = df['solo_fecha'].min()
