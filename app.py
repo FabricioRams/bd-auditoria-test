@@ -93,129 +93,162 @@ if not st.session_state['autenticado']:
 
 
 # ==========================================
-# A PARTIR DE AQUÍ VA TODO EL CÓDIGO DE TU DASHBOARD (El que pegaste antes)
+# SISTEMA DE PESTAÑAS (TABS)
 # ==========================================
+tab_vivo, tab_csv = st.tabs(["📡 Monitoreo en Vivo (Neon)", "📁 Cargar Archivo CSV"])
 
-# --- CARGA DE DATOS ---
-try:
-    df = load_logs()
-    # Creamos una columna auxiliar solo con la fecha (sin hora) para facilitar filtros y gráficos
-    df['solo_fecha'] = df['fecha_hora'].dt.date
-except Exception as exc:
-    st.error(f"No se pudo consultar la tabla AUDITORIA_LOGS: {exc}")
-    st.stop()
-
-if df.empty:
-    st.info("La tabla de auditoría está vacía. Realiza algunas operaciones en la base de datos.")
-    st.stop()
-
+# PESTAÑA 1: CONEXIÓN A LA BASE DE DATOS EN VIVO
 # ==========================================
-# 1. BARRA LATERAL (FILTROS AVANZADOS)
-# ==========================================
-st.sidebar.header("Filtros Avanzados")
+with tab_vivo:
 
-# --- PANEL DE USUARIO (En la barra lateral) ---
-st.sidebar.info(f" Auditor logueado: **{st.session_state['usuario_actual']}**")
+    # --- CARGA DE DATOS ---
+    try:
+        df = load_logs()
+        # Creamos una columna auxiliar solo con la fecha (sin hora) para facilitar filtros y gráficos
+        df['solo_fecha'] = df['fecha_hora'].dt.date
+    except Exception as exc:
+        st.error(f"No se pudo consultar la tabla AUDITORIA_LOGS: {exc}")
+        st.stop()
 
-if st.sidebar.button(" Cerrar Sesión", use_container_width=True):
-    st.session_state['autenticado'] = False
-    st.rerun()
+    if df.empty:
+        st.info("La tabla de auditoría está vacía. Realiza algunas operaciones en la base de datos.")
+        st.stop()
 
-st.sidebar.markdown("---")
+    # ==========================================
+    # 1. BARRA LATERAL (FILTROS AVANZADOS)
+    # ==========================================
+    st.sidebar.header("Filtros Avanzados")
 
-# Filtro: Rango de Fechas
-fecha_min = df['solo_fecha'].min()
-fecha_max = df['solo_fecha'].max()
-# Si hay un solo día, evitamos errores en el date_input
-if fecha_min == fecha_max:
-    fecha_rango = st.sidebar.date_input("Rango de Fechas", fecha_min)
-    rango_inicio, rango_fin = fecha_rango, fecha_rango
-else:
-    fecha_rango = st.sidebar.date_input("Rango de Fechas", [fecha_min, fecha_max])
-    if len(fecha_rango) == 2:
-        rango_inicio, rango_fin = fecha_rango
+    # --- PANEL DE USUARIO (En la barra lateral) ---
+    st.sidebar.info(f" Auditor logueado: **{st.session_state['usuario_actual']}**")
+
+    if st.sidebar.button(" Cerrar Sesión", use_container_width=True):
+        st.session_state['autenticado'] = False
+        st.rerun()
+
+    st.sidebar.markdown("---")
+
+    # Filtro: Rango de Fechas
+    fecha_min = df['solo_fecha'].min()
+    fecha_max = df['solo_fecha'].max()
+    # Si hay un solo día, evitamos errores en el date_input
+    if fecha_min == fecha_max:
+        fecha_rango = st.sidebar.date_input("Rango de Fechas", fecha_min)
+        rango_inicio, rango_fin = fecha_rango, fecha_rango
     else:
-        rango_inicio, rango_fin = fecha_rango[0], fecha_rango[0]
+        fecha_rango = st.sidebar.date_input("Rango de Fechas", [fecha_min, fecha_max])
+        if len(fecha_rango) == 2:
+            rango_inicio, rango_fin = fecha_rango
+        else:
+            rango_inicio, rango_fin = fecha_rango[0], fecha_rango[0]
 
-# Filtro: Usuario
-usuarios_disponibles = sorted(df["usuario_bd"].dropna().unique().tolist())
-usuarios_seleccionados = st.sidebar.multiselect("Usuario de BD", options=usuarios_disponibles, default=usuarios_disponibles)
+    # Filtro: Usuario
+    usuarios_disponibles = sorted(df["usuario_bd"].dropna().unique().tolist())
+    usuarios_seleccionados = st.sidebar.multiselect("Usuario de BD", options=usuarios_disponibles, default=usuarios_disponibles)
 
-# Filtro: Tabla
-tablas_disponibles = sorted(df["tabla_nombre"].dropna().unique().tolist())
-tablas_seleccionadas = st.sidebar.multiselect("Tabla", options=tablas_disponibles, default=tablas_disponibles)
+    # Filtro: Tabla
+    tablas_disponibles = sorted(df["tabla_nombre"].dropna().unique().tolist())
+    tablas_seleccionadas = st.sidebar.multiselect("Tabla", options=tablas_disponibles, default=tablas_disponibles)
 
-# Filtro: Operación
-operaciones_disponibles = ["I", "U", "D"]
-operaciones_seleccionadas = st.sidebar.multiselect("Operación", options=operaciones_disponibles, default=operaciones_disponibles)
+    # Filtro: Operación
+    operaciones_disponibles = ["I", "U", "D"]
+    operaciones_seleccionadas = st.sidebar.multiselect("Operación", options=operaciones_disponibles, default=operaciones_disponibles)
 
-# --- APLICAR FILTROS ---
-df_filtrado = df[
-    (df["operacion"].isin(operaciones_seleccionadas)) &
-    (df["tabla_nombre"].isin(tablas_seleccionadas)) &
-    (df["usuario_bd"].isin(usuarios_seleccionados)) &
-    (df["solo_fecha"] >= rango_inicio) &
-    (df["solo_fecha"] <= rango_fin)
-]
+    # --- APLICAR FILTROS ---
+    df_filtrado = df[
+        (df["operacion"].isin(operaciones_seleccionadas)) &
+        (df["tabla_nombre"].isin(tablas_seleccionadas)) &
+        (df["usuario_bd"].isin(usuarios_seleccionados)) &
+        (df["solo_fecha"] >= rango_inicio) &
+        (df["solo_fecha"] <= rango_fin)
+    ]
 
+    # ==========================================
+    # 2. PANEL PRINCIPAL (KPIs Y GRÁFICOS)
+    # ==========================================
+
+    # --- TARJETAS DE MÉTRICAS (KPIs) ---
+    st.markdown("###  Resumen de Actividad")
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric(label="Total Operaciones", value=len(df_filtrado))
+    with col2:
+        st.metric(label="Nuevos (INSERT)", value=len(df_filtrado[df_filtrado['operacion'] == 'I']))
+    with col3:
+        st.metric(label="Modificados (UPDATE)", value=len(df_filtrado[df_filtrado['operacion'] == 'U']))
+    with col4:
+        st.metric(label="Eliminados (DELETE)", value=len(df_filtrado[df_filtrado['operacion'] == 'D']))
+
+    st.markdown("---")
+
+    # --- GRÁFICOS ---
+    st.markdown("###  Análisis Visual")
+    grafico_col1, grafico_col2 = st.columns(2)
+
+    with grafico_col1:
+        st.write("**Operaciones por Tabla**")
+        if not df_filtrado.empty:
+            ops_por_tabla = df_filtrado['tabla_nombre'].value_counts()
+            st.bar_chart(ops_por_tabla, color="#3b82f6")
+        else:
+            st.info("No hay datos para graficar.")
+
+    with grafico_col2:
+        st.write("**Línea de Tiempo de Cambios**")
+        if not df_filtrado.empty:
+            ops_por_dia = df_filtrado['solo_fecha'].value_counts().sort_index()
+            st.line_chart(ops_por_dia, color="#ef4444")
+        else:
+            st.info("No hay datos para graficar.")
+
+    st.markdown("---")
+
+    # ==========================================
+    # 3. TABLA DE REGISTROS Y DESCARGA
+    # ==========================================
+    st.markdown("###  Registro Detallado de Auditoría")
+
+    # Mostramos la tabla sin la columna auxiliar 'solo_fecha'
+    st.dataframe(df_filtrado.drop(columns=['solo_fecha']), use_container_width=True)
+
+    # Botón para descargar
+    @st.cache_data
+    def convert_df(df_to_convert):
+        return df_to_convert.to_csv(index=False).encode('utf-8')
+
+    csv = convert_df(df_filtrado.drop(columns=['solo_fecha']))
+    st.download_button(
+        label=" Descargar Reporte en CSV",
+        data=csv,
+        file_name='reporte_auditoria.csv',
+        mime='text/csv',
+    )
+
+
+# PESTAÑA 2: CARGADOR DE ARCHIVOS CSV
 # ==========================================
-# 2. PANEL PRINCIPAL (KPIs Y GRÁFICOS)
-# ==========================================
-
-# --- TARJETAS DE MÉTRICAS (KPIs) ---
-st.markdown("###  Resumen de Actividad")
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-    st.metric(label="Total Operaciones", value=len(df_filtrado))
-with col2:
-    st.metric(label="Nuevos (INSERT)", value=len(df_filtrado[df_filtrado['operacion'] == 'I']))
-with col3:
-    st.metric(label="Modificados (UPDATE)", value=len(df_filtrado[df_filtrado['operacion'] == 'U']))
-with col4:
-    st.metric(label="Eliminados (DELETE)", value=len(df_filtrado[df_filtrado['operacion'] == 'D']))
-
-st.markdown("---")
-
-# --- GRÁFICOS ---
-st.markdown("###  Análisis Visual")
-grafico_col1, grafico_col2 = st.columns(2)
-
-with grafico_col1:
-    st.write("**Operaciones por Tabla**")
-    if not df_filtrado.empty:
-        ops_por_tabla = df_filtrado['tabla_nombre'].value_counts()
-        st.bar_chart(ops_por_tabla, color="#3b82f6")
-    else:
-        st.info("No hay datos para graficar.")
-
-with grafico_col2:
-    st.write("**Línea de Tiempo de Cambios**")
-    if not df_filtrado.empty:
-        ops_por_dia = df_filtrado['solo_fecha'].value_counts().sort_index()
-        st.line_chart(ops_por_dia, color="#ef4444")
-    else:
-        st.info("No hay datos para graficar.")
-
-st.markdown("---")
-
-# ==========================================
-# 3. TABLA DE REGISTROS Y DESCARGA
-# ==========================================
-st.markdown("###  Registro Detallado de Auditoría")
-
-# Mostramos la tabla sin la columna auxiliar 'solo_fecha'
-st.dataframe(df_filtrado.drop(columns=['solo_fecha']), use_container_width=True)
-
-# Botón para descargar
-@st.cache_data
-def convert_df(df_to_convert):
-    return df_to_convert.to_csv(index=False).encode('utf-8')
-
-csv = convert_df(df_filtrado.drop(columns=['solo_fecha']))
-st.download_button(
-    label=" Descargar Reporte en CSV",
-    data=csv,
-    file_name='reporte_auditoria.csv',
-    mime='text/csv',
-)
+with tab_csv:
+    st.markdown("### Análisis de Logs Externos")
+    st.info("Sube un reporte histórico de PostgreSQL o MySQL en formato .csv para analizarlo sin conexión a la base de datos.")
+    
+    # El widget mágico de Streamlit para subir archivos
+    archivo_subido = st.file_uploader("Selecciona un archivo CSV", type=["csv"])
+    
+    if archivo_subido is not None:
+        try:
+            # Pandas lee el archivo que subió el usuario
+            df_externo = pd.read_csv(archivo_subido)
+            
+            st.success("✅ ¡Archivo procesado correctamente!")
+            
+            # Mostramos un resumen
+            col_a, col_b = st.columns(2)
+            col_a.metric("Total de Filas", len(df_externo))
+            col_b.metric("Columnas Detectadas", len(df_externo.columns))
+            
+            # Mostramos la tabla interactiva
+            st.dataframe(df_externo, use_container_width=True)
+            
+        except Exception as e:
+            st.error(f"Error al leer el archivo: {e}")
