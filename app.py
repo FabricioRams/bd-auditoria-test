@@ -93,6 +93,114 @@ if not st.session_state['autenticado']:
 
 
 # ==========================================
+# CARGAR DATOS (ANTES DE LAS PESTAÑAS)
+# ==========================================
+# Variable para almacenar el CSV cargado
+if 'df_externo' not in st.session_state:
+    st.session_state['df_externo'] = None
+
+# --- CARGA DE DATOS DE LA BASE DE DATOS EN VIVO ---
+try:
+    df = load_logs()
+    # Creamos una columna auxiliar solo con la fecha (sin hora) para facilitar filtros y gráficos
+    df['solo_fecha'] = df['fecha_hora'].dt.date
+except Exception as exc:
+    st.error(f"No se pudo consultar la tabla AUDITORIA_LOGS: {exc}")
+    st.stop()
+
+if df.empty:
+    st.info("La tabla de auditoría está vacía. Realiza algunas operaciones en la base de datos.")
+    st.stop()
+
+# ==========================================
+# BARRA LATERAL GLOBAL (FILTROS AVANZADOS)
+# ==========================================
+st.sidebar.header("Filtros Avanzados")
+
+# --- PANEL DE USUARIO (En la barra lateral) ---
+st.sidebar.info(f" Auditor logueado: **{st.session_state['usuario_actual']}**")
+
+if st.sidebar.button(" Cerrar Sesión", use_container_width=True):
+    st.session_state['autenticado'] = False
+    st.rerun()
+
+st.sidebar.markdown("---")
+
+# Mostrar filtros según si hay datos externos cargados
+if st.session_state['df_externo'] is None:
+    st.sidebar.subheader("📡 Filtros - Monitoreo en Vivo")
+    
+    # Filtro: Rango de Fechas
+    fecha_min = df['solo_fecha'].min()
+    fecha_max = df['solo_fecha'].max()
+    if fecha_min == fecha_max:
+        fecha_rango = st.sidebar.date_input("Rango de Fechas", fecha_min, key="fecha_vivo")
+        rango_inicio, rango_fin = fecha_rango, fecha_rango
+    else:
+        fecha_rango = st.sidebar.date_input("Rango de Fechas", [fecha_min, fecha_max], key="fecha_vivo")
+        if len(fecha_rango) == 2:
+            rango_inicio, rango_fin = fecha_rango
+        else:
+            rango_inicio, rango_fin = fecha_rango[0], fecha_rango[0]
+
+    # Filtro: Usuario
+    usuarios_disponibles = sorted(df["usuario_bd"].dropna().unique().tolist())
+    usuarios_seleccionados = st.sidebar.multiselect("Usuario de BD", options=usuarios_disponibles, default=usuarios_disponibles, key="usuario_vivo")
+
+    # Filtro: Tabla
+    tablas_disponibles = sorted(df["tabla_nombre"].dropna().unique().tolist())
+    tablas_seleccionadas = st.sidebar.multiselect("Tabla", options=tablas_disponibles, default=tablas_disponibles, key="tabla_vivo")
+
+    # Filtro: Operación
+    operaciones_disponibles = ["I", "U", "D"]
+    operaciones_seleccionadas = st.sidebar.multiselect("Operación", options=operaciones_disponibles, default=operaciones_disponibles, key="operacion_vivo")
+    
+    # Guardar en session state para usarlos en la pestaña
+    st.session_state['rango_inicio_vivo'] = rango_inicio
+    st.session_state['rango_fin_vivo'] = rango_fin
+    st.session_state['usuarios_seleccionados_vivo'] = usuarios_seleccionados
+    st.session_state['tablas_seleccionadas_vivo'] = tablas_seleccionadas
+    st.session_state['operaciones_seleccionadas_vivo'] = operaciones_seleccionadas
+else:
+    st.sidebar.subheader("📁 Filtros - Archivo CSV")
+    
+    df_ext = st.session_state['df_externo']
+    
+    # Filtro: Rango de Fechas (si existe)
+    if 'solo_fecha' in df_ext.columns:
+        fecha_min = df_ext['solo_fecha'].min()
+        fecha_max = df_ext['solo_fecha'].max()
+        if fecha_min == fecha_max:
+            fecha_rango = st.sidebar.date_input("Rango de Fechas", fecha_min, key="fecha_csv")
+            rango_inicio, rango_fin = fecha_rango, fecha_rango
+        else:
+            fecha_rango = st.sidebar.date_input("Rango de Fechas", [fecha_min, fecha_max], key="fecha_csv")
+            if len(fecha_rango) == 2:
+                rango_inicio, rango_fin = fecha_rango
+            else:
+                rango_inicio, rango_fin = fecha_rango[0], fecha_rango[0]
+        st.session_state['rango_inicio_csv'] = rango_inicio
+        st.session_state['rango_fin_csv'] = rango_fin
+    
+    # Filtro: Usuario (si existe)
+    if 'usuario_bd' in df_ext.columns:
+        usuarios_disponibles = sorted(df_ext["usuario_bd"].dropna().unique().tolist())
+        usuarios_seleccionados = st.sidebar.multiselect("Usuario de BD", options=usuarios_disponibles, default=usuarios_disponibles, key="usuario_csv")
+        st.session_state['usuarios_seleccionados_csv'] = usuarios_seleccionados
+    
+    # Filtro: Tabla (si existe)
+    if 'tabla_nombre' in df_ext.columns:
+        tablas_disponibles = sorted(df_ext["tabla_nombre"].dropna().unique().tolist())
+        tablas_seleccionadas = st.sidebar.multiselect("Tabla", options=tablas_disponibles, default=tablas_disponibles, key="tabla_csv")
+        st.session_state['tablas_seleccionadas_csv'] = tablas_seleccionadas
+    
+    # Filtro: Operación (si existe)
+    if 'operacion' in df_ext.columns:
+        operaciones_disponibles = sorted(df_ext["operacion"].dropna().unique().tolist())
+        operaciones_seleccionadas = st.sidebar.multiselect("Operación", options=operaciones_disponibles, default=operaciones_disponibles, key="operacion_csv")
+        st.session_state['operaciones_seleccionadas_csv'] = operaciones_seleccionadas
+
+# ==========================================
 # SISTEMA DE PESTAÑAS (TABS)
 # ==========================================
 tab_vivo, tab_csv = st.tabs(["📡 Monitoreo en Vivo (Neon)", "📁 Cargar Archivo CSV"])
@@ -240,6 +348,14 @@ with tab_csv:
             # Pandas lee el archivo que subió el usuario
             df_externo = pd.read_csv(archivo_subido)
             
+            # Convertir columna de fecha a datetime si existe
+            if 'fecha_hora' in df_externo.columns:
+                df_externo['fecha_hora'] = pd.to_datetime(df_externo['fecha_hora'])
+                df_externo['solo_fecha'] = df_externo['fecha_hora'].dt.date
+            
+            # Guardar en session_state para que el sidebar lo detecte
+            st.session_state['df_externo'] = df_externo
+            
             st.success("✅ ¡Archivo procesado correctamente!")
             
             # Mostramos un resumen
@@ -247,8 +363,77 @@ with tab_csv:
             col_a.metric("Total de Filas", len(df_externo))
             col_b.metric("Columnas Detectadas", len(df_externo.columns))
             
+            st.markdown("---")
+            
+            # Recuperar filtros del sidebar (session state)
+            if 'rango_inicio_csv' in st.session_state:
+                rango_inicio = st.session_state.get('rango_inicio_csv', df_externo['solo_fecha'].min())
+                rango_fin = st.session_state.get('rango_fin_csv', df_externo['solo_fecha'].max())
+                usuarios_seleccionados = st.session_state.get('usuarios_seleccionados_csv', [])
+                tablas_seleccionadas = st.session_state.get('tablas_seleccionadas_csv', [])
+                operaciones_seleccionadas = st.session_state.get('operaciones_seleccionadas_csv', [])
+                
+                # --- APLICAR FILTROS ---
+                df_filtrado_csv = df_externo.copy()
+                
+                if 'operacion' in df_filtrado_csv.columns and operaciones_seleccionadas:
+                    df_filtrado_csv = df_filtrado_csv[df_filtrado_csv["operacion"].isin(operaciones_seleccionadas)]
+                
+                if 'tabla_nombre' in df_filtrado_csv.columns and tablas_seleccionadas:
+                    df_filtrado_csv = df_filtrado_csv[df_filtrado_csv["tabla_nombre"].isin(tablas_seleccionadas)]
+                
+                if 'usuario_bd' in df_filtrado_csv.columns and usuarios_seleccionados:
+                    df_filtrado_csv = df_filtrado_csv[df_filtrado_csv["usuario_bd"].isin(usuarios_seleccionados)]
+                
+                if 'solo_fecha' in df_filtrado_csv.columns:
+                    df_filtrado_csv = df_filtrado_csv[
+                        (df_filtrado_csv["solo_fecha"] >= rango_inicio) &
+                        (df_filtrado_csv["solo_fecha"] <= rango_fin)
+                    ]
+            else:
+                df_filtrado_csv = df_externo.copy()
+            
+            st.markdown("---")
+            
+            # Mostrar estadísticas de lo filtrado
+            st.markdown("### 📊 Resumen Filtrado")
+            stat_col1, stat_col2, stat_col3 = st.columns(3)
+            
+            with stat_col1:
+                st.metric("Registros Mostrados", len(df_filtrado_csv))
+            
+            if 'operacion' in df_filtrado_csv.columns:
+                with stat_col2:
+                    insert_count = len(df_filtrado_csv[df_filtrado_csv['operacion'] == 'I']) if 'I' in df_filtrado_csv['operacion'].values else 0
+                    update_count = len(df_filtrado_csv[df_filtrado_csv['operacion'] == 'U']) if 'U' in df_filtrado_csv['operacion'].values else 0
+                    delete_count = len(df_filtrado_csv[df_filtrado_csv['operacion'] == 'D']) if 'D' in df_filtrado_csv['operacion'].values else 0
+                    st.metric("Total de Cambios", f"I:{insert_count} U:{update_count} D:{delete_count}")
+            
+            if 'tabla_nombre' in df_filtrado_csv.columns:
+                with stat_col3:
+                    tablas_count = df_filtrado_csv['tabla_nombre'].nunique()
+                    st.metric("Tablas Afectadas", tablas_count)
+            
+            st.markdown("---")
+            
             # Mostramos la tabla interactiva
-            st.dataframe(df_externo, use_container_width=True)
+            st.markdown("### 📋 Datos del CSV")
+            columnas_mostrar = [col for col in df_filtrado_csv.columns if col != 'solo_fecha']
+            st.dataframe(df_filtrado_csv[columnas_mostrar], use_container_width=True)
+            
+            # Botón para descargar los datos filtrados
+            @st.cache_data
+            def convert_df_csv(df_to_convert):
+                return df_to_convert.to_csv(index=False).encode('utf-8')
+            
+            csv_filtrado = convert_df_csv(df_filtrado_csv[columnas_mostrar])
+            st.download_button(
+                label="⬇️ Descargar Datos Filtrados (CSV)",
+                data=csv_filtrado,
+                file_name='reporte_filtrado.csv',
+                mime='text/csv',
+            )
             
         except Exception as e:
             st.error(f"Error al leer el archivo: {e}")
+            st.session_state['df_externo'] = None
