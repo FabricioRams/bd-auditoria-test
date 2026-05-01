@@ -58,15 +58,9 @@ st.markdown("### Accesos directos")
 col1, col2 = st.columns(2)
 
 with col1:
-    st.page_link(
-        "pages/1_📡_Monitoreo_Vivo.py",
-        label="Ir a Monitoreo en Vivo",
-        icon="📡",
-    )
+    if st.button("Ir a Monitoreo en Vivo", use_container_width=True):
+        st.switch_page("pages/1_Monitoreo_Vivo.py")
 
 with col2:
-    st.page_link(
-        "pages/2_📁_Cargador_CSV.py",
-        label="Ir a Cargador CSV",
-        icon="📁",
-    )
+    if st.button("Ir a Cargador CSV", use_container_width=True):
+        st.switch_page("pages/2_Cargador_CSV.py")
