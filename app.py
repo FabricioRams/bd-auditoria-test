@@ -61,12 +61,12 @@ with col1:
     st.button(
         "Ir a Monitoreo en Vivo",
         use_container_width=True,
-        on_click=lambda: st.switch_page("Monitoreo Vivo")
+        on_click=lambda: st.switch_page("1_Monitoreo_Vivo")
     )
 
 with col2:
     st.button(
         "Ir a Cargador CSV",
         use_container_width=True,
-        on_click=lambda: st.switch_page("Cargador CSV")
+        on_click=lambda: st.switch_page("2_Cargador_CSV")
     )
