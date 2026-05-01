@@ -52,4 +52,21 @@ if not st.session_state["autenticado"]:
     st.stop()
 
 st.success(f"Bienvenido, {st.session_state.get('usuario_actual', 'usuario')}.")
-st.info("Usa el menú lateral de Streamlit para abrir Monitoreo en Vivo o Cargador CSV.")
+st.info("Usa los accesos directos de abajo o el menú lateral de Streamlit para abrir Monitoreo en Vivo o Cargador CSV.")
+
+st.markdown("### Accesos directos")
+col1, col2 = st.columns(2)
+
+with col1:
+    st.page_link(
+        "pages/1_📡_Monitoreo_Vivo.py",
+        label="Ir a Monitoreo en Vivo",
+        icon="📡",
+    )
+
+with col2:
+    st.page_link(
+        "pages/2_📁_Cargador_CSV.py",
+        label="Ir a Cargador CSV",
+        icon="📁",
+    )
