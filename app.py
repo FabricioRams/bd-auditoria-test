@@ -222,45 +222,12 @@ with tab_vivo:
         st.info("La tabla de auditoría está vacía. Realiza algunas operaciones en la base de datos.")
         st.stop()
 
-    # ==========================================
-    # 1. BARRA LATERAL (FILTROS AVANZADOS)
-    # ==========================================
-    st.sidebar.header("Filtros Avanzados")
-
-    # --- PANEL DE USUARIO (En la barra lateral) ---
-    st.sidebar.info(f" Auditor logueado: **{st.session_state['usuario_actual']}**")
-
-    if st.sidebar.button(" Cerrar Sesión", use_container_width=True):
-        st.session_state['autenticado'] = False
-        st.rerun()
-
-    st.sidebar.markdown("---")
-
-    # Filtro: Rango de Fechas
-    fecha_min = df['solo_fecha'].min()
-    fecha_max = df['solo_fecha'].max()
-    # Si hay un solo día, evitamos errores en el date_input
-    if fecha_min == fecha_max:
-        fecha_rango = st.sidebar.date_input("Rango de Fechas", fecha_min)
-        rango_inicio, rango_fin = fecha_rango, fecha_rango
-    else:
-        fecha_rango = st.sidebar.date_input("Rango de Fechas", [fecha_min, fecha_max])
-        if len(fecha_rango) == 2:
-            rango_inicio, rango_fin = fecha_rango
-        else:
-            rango_inicio, rango_fin = fecha_rango[0], fecha_rango[0]
-
-    # Filtro: Usuario
-    usuarios_disponibles = sorted(df["usuario_bd"].dropna().unique().tolist())
-    usuarios_seleccionados = st.sidebar.multiselect("Usuario de BD", options=usuarios_disponibles, default=usuarios_disponibles)
-
-    # Filtro: Tabla
-    tablas_disponibles = sorted(df["tabla_nombre"].dropna().unique().tolist())
-    tablas_seleccionadas = st.sidebar.multiselect("Tabla", options=tablas_disponibles, default=tablas_disponibles)
-
-    # Filtro: Operación
-    operaciones_disponibles = ["I", "U", "D"]
-    operaciones_seleccionadas = st.sidebar.multiselect("Operación", options=operaciones_disponibles, default=operaciones_disponibles)
+    # Recuperar filtros del session state (creados en el sidebar global)
+    rango_inicio = st.session_state.get('rango_inicio_vivo', df['solo_fecha'].min())
+    rango_fin = st.session_state.get('rango_fin_vivo', df['solo_fecha'].max())
+    usuarios_seleccionados = st.session_state.get('usuarios_seleccionados_vivo', sorted(df["usuario_bd"].dropna().unique().tolist()))
+    tablas_seleccionadas = st.session_state.get('tablas_seleccionadas_vivo', sorted(df["tabla_nombre"].dropna().unique().tolist()))
+    operaciones_seleccionadas = st.session_state.get('operaciones_seleccionadas_vivo', ["I", "U", "D"])
 
     # --- APLICAR FILTROS ---
     df_filtrado = df[
