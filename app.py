@@ -323,7 +323,7 @@ with tab_csv:
             # Guardar en session_state para que el sidebar lo detecte
             st.session_state['df_externo'] = df_externo
             
-            st.success("✅ ¡Archivo procesado correctamente!")
+            st.success(" ¡Archivo procesado correctamente!")
             
             # Mostramos un resumen
             col_a, col_b = st.columns(2)
@@ -395,7 +395,7 @@ with tab_csv:
             
             csv_filtrado = convert_df_csv(df_filtrado_csv[columnas_mostrar])
             st.download_button(
-                label="⬇️ Descargar Datos Filtrados (CSV)",
+                label="⬇ Descargar Datos Filtrados (CSV)",
                 data=csv_filtrado,
                 file_name='reporte_filtrado.csv',
                 mime='text/csv',
