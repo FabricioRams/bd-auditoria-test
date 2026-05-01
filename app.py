@@ -128,7 +128,7 @@ st.sidebar.markdown("---")
 
 # Mostrar filtros según si hay datos externos cargados
 if st.session_state['df_externo'] is None:
-    st.sidebar.subheader("📡 Filtros - Monitoreo en Vivo")
+    st.sidebar.subheader(" Filtros - Monitoreo en Vivo")
     
     # Filtro: Rango de Fechas
     fecha_min = df['solo_fecha'].min()
@@ -162,7 +162,7 @@ if st.session_state['df_externo'] is None:
     st.session_state['tablas_seleccionadas_vivo'] = tablas_seleccionadas
     st.session_state['operaciones_seleccionadas_vivo'] = operaciones_seleccionadas
 else:
-    st.sidebar.subheader("📁 Filtros - Archivo CSV")
+    st.sidebar.subheader(" Filtros - Archivo CSV")
     
     df_ext = st.session_state['df_externo']
     
@@ -203,7 +203,7 @@ else:
 # ==========================================
 # SISTEMA DE PESTAÑAS (TABS)
 # ==========================================
-tab_vivo, tab_csv = st.tabs(["📡 Monitoreo en Vivo (Neon)", "📁 Cargar Archivo CSV"])
+tab_vivo, tab_csv = st.tabs([" Monitoreo en Vivo", " Cargar Archivo CSV"])
 
 # PESTAÑA 1: CONEXIÓN A LA BASE DE DATOS EN VIVO
 # ==========================================
