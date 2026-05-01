@@ -58,15 +58,7 @@ st.markdown("### Accesos directos")
 col1, col2 = st.columns(2)
 
 with col1:
-    st.button(
-        "Ir a Monitoreo en Vivo",
-        use_container_width=True,
-        on_click=lambda: st.switch_page("1_Monitoreo_Vivo")
-    )
+    st.button("Ir a Monitoreo en Vivo", on_click=lambda: st.switch_page("pages/1_Monitoreo_Vivo.py"))
 
 with col2:
-    st.button(
-        "Ir a Cargador CSV",
-        use_container_width=True,
-        on_click=lambda: st.switch_page("2_Cargador_CSV")
-    )
+    st.button("Ir a Cargador CSV", on_click=lambda: st.switch_page("pages/2_Cargador_CSV.py"))
