@@ -13,7 +13,7 @@ DB_CONFIG = {
     "password": "superpassword",
 }
 
-@st.cache_resource
+#@st.cache_resource
 def get_connection():
     # Si la app detecta una URL en los "Secretos" (en la nube), se conecta a Neon
     if "DATABASE_URL" in st.secrets:
