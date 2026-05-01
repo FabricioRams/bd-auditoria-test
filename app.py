@@ -15,7 +15,12 @@ DB_CONFIG = {
 
 @st.cache_resource
 def get_connection():
-    return psycopg2.connect(**DB_CONFIG)
+    # Si la app detecta una URL en los "Secretos" (en la nube), se conecta a Neon
+    if "DATABASE_URL" in st.secrets:
+        return psycopg2.connect(st.secrets["DATABASE_URL"])
+    # Si no, usa la conexión de tu Docker local
+    else:
+        return psycopg2.connect(host="localhost", port=5432, dbname="postgres", user="postgres", password="superpassword")
 
 @st.cache_data(ttl=30)
 def load_logs():
