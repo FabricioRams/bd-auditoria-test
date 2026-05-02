@@ -9,6 +9,42 @@ if not st.session_state.get('autenticado', False):
 st.markdown("###  Análisis de Logs Externos")
 st.info("Sube un reporte histórico de PostgreSQL o MySQL en formato .csv para analizarlo sin conexión a la base de datos.")
 
+# ==========================================
+# DESCARGAS DE EJEMPLOS
+# ==========================================
+st.markdown("**📥 Descargar Archivos de Ejemplo**")
+col1, col2 = st.columns(2)
+
+# Archivo de ejemplo 1
+try:
+    with open("reporte_auditar_prueba.csv", "r", encoding="utf-8") as f:
+        datos_ejemplo1 = f.read()
+    with col1:
+        st.download_button(
+            label=" Descargar: reporte_auditar_prueba.csv",
+            data=datos_ejemplo1,
+            file_name="reporte_auditar_prueba.csv",
+            mime="text/csv"
+        )
+except FileNotFoundError:
+    pass
+
+# Archivo de ejemplo 2
+try:
+    with open("reporte_auditar_prueba_2.csv", "r", encoding="utf-8") as f:
+        datos_ejemplo2 = f.read()
+    with col2:
+        st.download_button(
+            label=" Descargar: reporte_auditar_prueba_2.csv",
+            data=datos_ejemplo2,
+            file_name="reporte_auditar_prueba_2.csv",
+            mime="text/csv"
+        )
+except FileNotFoundError:
+    pass
+
+st.markdown("---")
+
 # Widget para subir archivo
 archivo_subido = st.file_uploader("Selecciona un archivo CSV", type=["csv"])
 
