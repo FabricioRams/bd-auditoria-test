@@ -12,7 +12,7 @@ st.info("Sube un reporte histórico de PostgreSQL o MySQL en formato .csv para a
 # ==========================================
 # DESCARGAS DE EJEMPLOS
 # ==========================================
-st.markdown("**📥 Descargar Archivos de Ejemplo**")
+st.markdown("** Descargar Archivos de Ejemplo**")
 col1, col2 = st.columns(2)
 
 # Archivo de ejemplo 1
