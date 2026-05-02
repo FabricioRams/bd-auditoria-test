@@ -22,7 +22,7 @@ def get_connection():
     return psycopg2.connect(**DB_CONFIG)
 
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=2)
 def load_logs():
     conn = get_connection()
     query = sql.SQL(

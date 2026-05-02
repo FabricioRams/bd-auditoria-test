@@ -1,7 +1,7 @@
 import streamlit as st
 
 from database import load_logs
-
+from streamlit_autorefresh import st_autorefresh
 
 if not st.session_state.get("autenticado", False):
     st.warning("Debes iniciar sesion para ver esta pagina.")
@@ -24,6 +24,15 @@ if df.empty:
 # ==========================================
 # BARRA LATERAL (FILTROS AVANZADOS)
 # ==========================================
+st.sidebar.markdown("### Modo Monitoreo")
+auto_refresh = st.sidebar.checkbox("Activar recarga ")
+
+if auto_refresh:
+    # Recarga la página sola cada 5000 milisegundos (5 segundos)
+    st_autorefresh(interval=5000, key="datarefresh")
+
+st.sidebar.markdown("---")
+
 st.sidebar.header("Filtros Avanzados")
 st.sidebar.info(f"Auditor logueado: {st.session_state.get('usuario_actual', 'N/A')}")
 
