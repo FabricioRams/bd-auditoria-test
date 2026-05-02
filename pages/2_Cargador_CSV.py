@@ -8,7 +8,46 @@ if not st.session_state.get('autenticado', False):
 
 st.markdown("###  Análisis de Logs Externos")
 st.info("Sube un reporte histórico de PostgreSQL o MySQL en formato .csv para analizarlo sin conexión a la base de datos.")
+# --- NUEVO: SECCIÓN DESPLEGABLE CON EJEMPLOS ---
+with st.expander("💡 ¿No tienes un archivo? Descarga datos de prueba"):
+    st.write("Usa estos archivos generados automáticamente para probar cómo el sistema se adapta a diferentes formatos sin que la aplicación colapse.")
+    
+    col_ej1, col_ej2 = st.columns(2)
+    
+    # Datos del Ejemplo 1 (Formato Clásico de Ventas)
+    csv_clasico = """log_id,fecha_hora,usuario_bd,tabla_nombre,operacion,valores_new
+1,2026-05-01 10:00:00,admin_inventario,public.productos,I,"{""nombre"": ""Laptop"", ""stock"": 50}"
+2,2026-05-01 10:15:00,app_ventas,public.ventas,I,"{""total"": 1500}"
+3,2026-05-02 11:00:00,admin_inventario,public.productos,U,"{""stock"": 49}"
+4,2026-05-02 12:30:00,app_ventas,public.ventas,I,"{""total"": 80.50}"
+"""
+    with col_ej1:
+        st.download_button(
+            label="⬇️ Descargar Log de Ventas (Clásico)",
+            data=csv_clasico.encode('utf-8'),
+            file_name="ejemplo_ventas.csv",
+            mime="text/csv"
+        )
+        
+    # Datos del Ejemplo 2 (Formato Universidad)
+    csv_uni = """log_id,fecha_hora,usuario_bd,tabla_nombre,operacion,detalles
+101,2026-05-01 08:00:00,admin_upt,public.libros,I,"{""libro"": ""Patrones de Diseño (GoF)""}"
+102,2026-05-01 09:15:22,sistema_lab,public.prestamos,I,"{""estudiante"": ""Arocutipa"", ""equipo"": ""Router Cisco""}"
+103,2026-05-02 09:30:10,sistema_lab,public.prestamos,I,"{""estudiante"": ""Perez"", ""equipo"": ""Switch 2960""}"
+104,2026-05-03 14:10:00,admin_upt,public.libros,D,"{""libro"": ""Arquitectura Monolítica""}"
+105,2026-05-04 18:30:00,sistema_lab,public.prestamos,I,"{""estudiante"": ""Colque"", ""equipo"": ""Cable Consola""}"
+"""
+    with col_ej2:
+        st.download_button(
+            label="⬇️ Descargar Log Universidad (Alternativo)",
+            data=csv_uni.encode('utf-8'),
+            file_name="ejemplo_universidad.csv",
+            mime="text/csv"
+        )
+# ------------------------------------------------
 
+# Aquí continúa tu código original:
+archivo_subido = st.file_uploader("Selecciona un archivo CSV", type=["csv"])
 # Widget para subir archivo
 archivo_subido = st.file_uploader("Selecciona un archivo CSV", type=["csv"])
 
