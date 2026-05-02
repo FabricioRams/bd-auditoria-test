@@ -48,9 +48,10 @@ if not st.session_state["autenticado"]:
                     st.rerun()
                 else:
                     st.error("Credenciales incorrectas. Acceso denegado.")
-
+    
+    # st.stop() debe estar indentado dentro del "if not st.session_state..."
     st.stop()
 
-st.success(f"Bienvenido, {st.session_state.get('usuario_actual', 'usuario')}.")
-st.info("Usa los accesos directos de abajo o el menú lateral de Streamlit para abrir Monitoreo en Vivo o Cargador CSV.")
-
+# --- MENSAJE DE BIENVENIDA AL ENTRAR ---
+st.success(f"✅ Bienvenido, {st.session_state.get('usuario_actual', 'usuario')}.")
+st.info("👈 Usa el menú lateral izquierdo para navegar entre el Monitoreo en Vivo y el Cargador de CSV.")
