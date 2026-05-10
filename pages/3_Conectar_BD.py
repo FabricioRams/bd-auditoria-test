@@ -1,5 +1,4 @@
 import streamlit as st
-import psycopg2
 import os
 
 st.set_page_config(page_title="Conectar a BD Cliente", layout="wide")
@@ -14,44 +13,85 @@ st.markdown("Configura la conexión a la base de datos de tu cliente para inyect
 
 # 2. Formulario de Conexión
 with st.expander("🔗 Configurar Credenciales de Conexión", expanded=not bool(st.session_state.get("db_creds"))):
+    motor = st.selectbox("Motor de Base de Datos", ["PostgreSQL", "MySQL", "SQLite", "MongoDB"])
+    
     with st.form("form_conexion"):
-        col1, col2 = st.columns(2)
-        with col1:
-            db_host = st.text_input("Host", value="localhost")
-            db_port = st.text_input("Puerto", value="5432")
-            db_name = st.text_input("Nombre de la Base de Datos")
-        with col2:
-            db_user = st.text_input("Usuario", value="postgres")
-            db_password = st.text_input("Contraseña", type="password")
+        if motor in ["PostgreSQL", "MySQL"]:
+            col1, col2 = st.columns(2)
+            with col1:
+                db_host = st.text_input("Host", value="localhost")
+                db_port = st.text_input("Puerto", value="5432" if motor == "PostgreSQL" else "3306")
+                db_name = st.text_input("Nombre de la Base de Datos")
+            with col2:
+                db_user = st.text_input("Usuario", value="postgres" if motor == "PostgreSQL" else "root")
+                db_password = st.text_input("Contraseña", type="password")
+        elif motor == "SQLite":
+            db_path = st.text_input("Ruta del archivo SQLite", placeholder="Ej: C:/rutas/a/mi/base.db", value=st.session_state.get("sqlite_db_path", ""))
+        elif motor == "MongoDB":
+            mongo_uri = st.text_input("URI de Conexión (opcional, ignora Host/Puerto/Credenciales si se provee)", value="")
+            col1, col2 = st.columns(2)
+            with col1:
+                db_host = st.text_input("Host", value="localhost")
+                db_port = st.text_input("Puerto", value="27017")
+            with col2:
+                db_name = st.text_input("Nombre de la Base de Datos")
+                db_user = st.text_input("Usuario (opcional)", value="")
+                db_password = st.text_input("Contraseña (opcional)", type="password")
         
         submit_conn = st.form_submit_button("Probar Conexión y Guardar", use_container_width=True)
         
         if submit_conn:
-            if not db_name:
-                st.error("Por favor ingresa el nombre de la base de datos.")
-            else:
-                try:
-                    # Intentar conexión
-                    conn = psycopg2.connect(
-                        host=db_host,
-                        port=db_port,
-                        dbname=db_name,
-                        user=db_user,
-                        password=db_password
-                    )
+            try:
+                creds = {}
+                db_display_name = ""
+                
+                if motor == "PostgreSQL":
+                    if not db_name: st.error("Por favor ingresa el nombre de la base de datos."); st.stop()
+                    import psycopg2
+                    conn = psycopg2.connect(host=db_host, port=db_port, dbname=db_name, user=db_user, password=db_password)
                     conn.close()
+                    creds = {"motor": motor, "host": db_host, "port": db_port, "dbname": db_name, "user": db_user, "password": db_password}
+                    db_display_name = db_name
                     
-                    st.session_state["db_creds"] = {
-                        "host": db_host,
-                        "port": db_port,
-                        "dbname": db_name,
-                        "user": db_user,
-                        "password": db_password
-                    }
-                    st.success(f"✅ Conexión exitosa a la base de datos '{db_name}'.")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"❌ Error al conectar: {e}")
+                elif motor == "MySQL":
+                    if not db_name: st.error("Por favor ingresa el nombre de la base de datos."); st.stop()
+                    import pymysql
+                    conn = pymysql.connect(host=db_host, port=int(db_port), database=db_name, user=db_user, password=db_password)
+                    conn.close()
+                    creds = {"motor": motor, "host": db_host, "port": int(db_port), "database": db_name, "user": db_user, "password": db_password}
+                    db_display_name = db_name
+                    
+                elif motor == "SQLite":
+                    if not db_path: st.error("Por favor ingresa la ruta del archivo."); st.stop()
+                    import sqlite3
+                    conn = sqlite3.connect(db_path)
+                    conn.close()
+                    creds = {"motor": motor, "path": db_path}
+                    db_display_name = db_path
+                    st.session_state["sqlite_db_path"] = db_path
+                    
+                elif motor == "MongoDB":
+                    if not db_name: st.error("Por favor ingresa el nombre de la base de datos."); st.stop()
+                    from pymongo import MongoClient
+                    if mongo_uri:
+                        uri = mongo_uri
+                    else:
+                        if db_user and db_password:
+                            uri = f"mongodb://{db_user}:{db_password}@{db_host}:{db_port}/"
+                        else:
+                            uri = f"mongodb://{db_host}:{db_port}/"
+                    
+                    client = MongoClient(uri, serverSelectionTimeoutMS=2000)
+                    client.server_info() # Provocar conexión para validar
+                    client.close()
+                    creds = {"motor": motor, "uri": uri, "dbname": db_name}
+                    db_display_name = db_name
+                
+                st.session_state["db_creds"] = creds
+                st.success(f"✅ Conexión exitosa a la base de datos '{db_display_name}' ({motor}).")
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Error al conectar: {e}")
 
 # Si hay credenciales, procedemos al resto de funcionalidades
 if st.session_state.get("db_creds"):
@@ -59,78 +99,196 @@ if st.session_state.get("db_creds"):
     
     st.header("⚙️ Gestión del Motor de Auditoría")
     
-    # Función helper para obtener conexión actual
-    def get_current_conn():
-        return psycopg2.connect(**st.session_state["db_creds"])
+    # Importar función genérica de conexión
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+    from database import get_connection
 
-    # 3. Instalar Motor de Auditoría
-    st.subheader("1. Instalar Estructura Base")
-    st.write("Esta acción ejecutará `core_auditoria.sql` para crear la tabla `AUDITORIA_LOGS` y la función genérica `fn_auditoria_generica()` en la base de datos conectada.")
-    
-    if st.button("🚀 Instalar Motor de Auditoría", type="primary"):
-        sql_file_path = "core_auditoria.sql"
-        if not os.path.exists(sql_file_path):
-            # Fallback en caso de que streamlit no se haya ejecutado desde la raíz
-            sql_file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "core_auditoria.sql")
-            
-        try:
-            with open(sql_file_path, "r", encoding="utf-8") as f:
-                sql_script = f.read()
-                
-            with get_current_conn() as conn:
-                with conn.cursor() as cur:
-                    cur.execute(sql_script)
-            st.success("✅ Motor de auditoría instalado correctamente. Ya puedes comenzar a instrumentar las tablas.")
-        except FileNotFoundError:
-            st.error(f"❌ No se encontró el archivo de núcleo: {sql_file_path}")
-        except Exception as e:
-            st.error(f"❌ Error al instalar el motor: {e}")
+    motor_actual = st.session_state["db_creds"].get("motor", "PostgreSQL")
+    st.info(f"Conectado actualmente al motor: **{motor_actual}**")
 
-    st.markdown("---")
-    
-    # 4. Listar tablas e Inyectar Triggers
-    st.subheader("2. Instrumentar Tablas")
-    st.write("Selecciona las tablas del esquema `public` a las que deseas agregarles el trigger de auditoría.")
-    
-    try:
-        with get_current_conn() as conn:
-            with conn.cursor() as cur:
-                # Consultar tablas existentes en public, descartando la tabla de logs
-                cur.execute("""
-                    SELECT table_name 
-                    FROM information_schema.tables 
-                    WHERE table_schema = 'public' 
-                      AND table_type = 'BASE TABLE'
-                      AND table_name != 'auditoria_logs';
-                """)
-                tablas = [row[0] for row in cur.fetchall()]
+    if motor_actual in ["PostgreSQL", "MySQL", "SQLite"]:
+        st.subheader("1. Instalar Estructura Base")
         
-        if tablas:
-            tablas_seleccionadas = st.multiselect("Tablas disponibles (esquema public):", tablas)
-            
-            if st.button("💉 Inyectar Triggers de Auditoría") and tablas_seleccionadas:
+        sql_filename = {
+            "PostgreSQL": "core_auditoria.sql",
+            "MySQL": "core_auditoria_mysql.sql",
+            "SQLite": "core_auditoria_sqlite.sql"
+        }[motor_actual]
+        
+        st.write(f"Esta acción ejecutará `{sql_filename}` para crear la tabla `AUDITORIA_LOGS` (y funciones si aplica) en la base de datos conectada.")
+        
+        if st.button("🚀 Instalar Motor de Auditoría", type="primary"):
+            sql_file_path = sql_filename
+            if not os.path.exists(sql_file_path):
+                sql_file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), sql_filename)
+                
+            try:
+                with open(sql_file_path, "r", encoding="utf-8") as f:
+                    sql_script = f.read()
+                    
+                conn = get_connection()
                 try:
-                    with get_current_conn() as conn:
-                        with conn.cursor() as cur:
-                            for tabla in tablas_seleccionadas:
-                                # 1. Borrar trigger anterior si existe
-                                cur.execute(f"DROP TRIGGER IF EXISTS trg_auditoria_{tabla} ON public.{tabla};")
-                                
-                                # 2. Crear el trigger
-                                cur.execute(f"""
-                                    CREATE TRIGGER trg_auditoria_{tabla}
-                                    AFTER INSERT OR UPDATE OR DELETE
-                                    ON public.{tabla}
-                                    FOR EACH ROW
-                                    EXECUTE FUNCTION public.fn_auditoria_generica();
-                                """)
-                    st.success(f"✅ Triggers inyectados correctamente en: **{', '.join(tablas_seleccionadas)}**")
-                except Exception as e:
-                    st.error(f"❌ Error al inyectar triggers: {e}")
-            elif not tablas_seleccionadas:
-                st.info("Selecciona al menos una tabla de la lista para inyectar los triggers.")
-        else:
-            st.warning("No se encontraron tablas base en el esquema `public` (excluyendo la de logs). ¡Crea algunas tablas primero!")
+                    if motor_actual == "SQLite":
+                        conn.executescript(sql_script)
+                        conn.commit()
+                    else:
+                        cur = conn.cursor()
+                        try:
+                            if motor_actual == "MySQL":
+                                # Separar por ; y ejecutar
+                                for statement in sql_script.split(';'):
+                                    if statement.strip():
+                                        cur.execute(statement)
+                            else:
+                                cur.execute(sql_script)
+                            conn.commit()
+                        finally:
+                            cur.close()
+                finally:
+                    conn.close()
+                st.success(f"✅ Motor de auditoría ({motor_actual}) instalado correctamente.")
+            except FileNotFoundError:
+                st.error(f"❌ No se encontró el archivo de núcleo: {sql_file_path}")
+            except Exception as e:
+                st.error(f"❌ Error al instalar el motor: {e}")
+
+        st.markdown("---")
+        
+        st.subheader("2. Instrumentar Tablas")
+        st.write("Selecciona las tablas a las que deseas agregarles el trigger de auditoría.")
+        
+        try:
+            conn = get_connection()
+            cur = conn.cursor()
+            try:
+                if motor_actual == "PostgreSQL":
+                    cur.execute("""
+                        SELECT table_name 
+                        FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                          AND table_type = 'BASE TABLE'
+                          AND table_name != 'auditoria_logs';
+                    """)
+                    tablas = [row[0] for row in cur.fetchall()]
+                elif motor_actual == "MySQL":
+                    cur.execute("SHOW TABLES;")
+                    tablas = [row[0] for row in cur.fetchall() if row[0].lower() != 'auditoria_logs']
+                elif motor_actual == "SQLite":
+                    cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name != 'AUDITORIA_LOGS' AND name NOT LIKE 'sqlite_%';")
+                    tablas = [row[0] for row in cur.fetchall()]
+            finally:
+                cur.close()
+            conn.close()
             
-    except Exception as e:
-        st.error(f"❌ Error al consultar las tablas: {e}")
+            if tablas:
+                tablas_seleccionadas = st.multiselect("Tablas disponibles:", tablas)
+                
+                if st.button("💉 Inyectar Triggers de Auditoría") and tablas_seleccionadas:
+                    try:
+                        conn = get_connection()
+                        cur = conn.cursor()
+                        try:
+                            for tabla in tablas_seleccionadas:
+                                if motor_actual == "PostgreSQL":
+                                    cur.execute(f"DROP TRIGGER IF EXISTS trg_auditoria_{tabla} ON public.{tabla};")
+                                    cur.execute(f"""
+                                        CREATE TRIGGER trg_auditoria_{tabla}
+                                        AFTER INSERT OR UPDATE OR DELETE
+                                        ON public.{tabla}
+                                        FOR EACH ROW
+                                        EXECUTE FUNCTION public.fn_auditoria_generica();
+                                    """)
+                                elif motor_actual == "MySQL":
+                                    cur.execute(f"SHOW COLUMNS FROM {tabla};")
+                                    columnas = [row[0] for row in cur.fetchall()]
+                                    
+                                    # Construir listas de strings de forma limpia para evitar SyntaxError por backslash
+                                    old_cols_str = ", ".join([f"'{col}', OLD.{col}" for col in columnas])
+                                    new_cols_str = ", ".join([f"'{col}', NEW.{col}" for col in columnas])
+                                    
+                                    json_old = f"JSON_OBJECT({old_cols_str})"
+                                    json_new = f"JSON_OBJECT({new_cols_str})"
+                                    
+                                    # Delete
+                                    cur.execute(f"DROP TRIGGER IF EXISTS trg_auditoria_{tabla}_delete;")
+                                    cur.execute(f"""
+                                        CREATE TRIGGER trg_auditoria_{tabla}_delete
+                                        AFTER DELETE ON {tabla} FOR EACH ROW
+                                        INSERT INTO AUDITORIA_LOGS (tabla_nombre, operacion, usuario_bd, valores_old)
+                                        VALUES ('{tabla}', 'D', USER(), {json_old});
+                                    """)
+                                    # Insert
+                                    cur.execute(f"DROP TRIGGER IF EXISTS trg_auditoria_{tabla}_insert;")
+                                    cur.execute(f"""
+                                        CREATE TRIGGER trg_auditoria_{tabla}_insert
+                                        AFTER INSERT ON {tabla} FOR EACH ROW
+                                        INSERT INTO AUDITORIA_LOGS (tabla_nombre, operacion, usuario_bd, valores_new)
+                                        VALUES ('{tabla}', 'I', USER(), {json_new});
+                                    """)
+                                    # Update
+                                    cur.execute(f"DROP TRIGGER IF EXISTS trg_auditoria_{tabla}_update;")
+                                    cur.execute(f"""
+                                        CREATE TRIGGER trg_auditoria_{tabla}_update
+                                        AFTER UPDATE ON {tabla} FOR EACH ROW
+                                        INSERT INTO AUDITORIA_LOGS (tabla_nombre, operacion, usuario_bd, valores_old, valores_new)
+                                        VALUES ('{tabla}', 'U', USER(), {json_old}, {json_new});
+                                    """)
+                                elif motor_actual == "SQLite":
+                                    cur.execute(f"PRAGMA table_info({tabla});")
+                                    columnas = [row[1] for row in cur.fetchall()]
+                                    
+                                    # Construir listas de strings de forma limpia para evitar SyntaxError por backslash
+                                    old_cols_str = ", ".join([f"'{col}', OLD.{col}" for col in columnas])
+                                    new_cols_str = ", ".join([f"'{col}', NEW.{col}" for col in columnas])
+                                    
+                                    json_old = f"json_object({old_cols_str})"
+                                    json_new = f"json_object({new_cols_str})"
+                                    
+                                    # Delete
+                                    cur.execute(f"DROP TRIGGER IF EXISTS trg_auditoria_{tabla}_delete;")
+                                    cur.execute(f"""
+                                        CREATE TRIGGER trg_auditoria_{tabla}_delete
+                                        AFTER DELETE ON {tabla} FOR EACH ROW
+                                        BEGIN
+                                            INSERT INTO AUDITORIA_LOGS (tabla_nombre, operacion, valores_old)
+                                            VALUES ('{tabla}', 'D', {json_old});
+                                        END;
+                                    """)
+                                    # Insert
+                                    cur.execute(f"DROP TRIGGER IF EXISTS trg_auditoria_{tabla}_insert;")
+                                    cur.execute(f"""
+                                        CREATE TRIGGER trg_auditoria_{tabla}_insert
+                                        AFTER INSERT ON {tabla} FOR EACH ROW
+                                        BEGIN
+                                            INSERT INTO AUDITORIA_LOGS (tabla_nombre, operacion, valores_new)
+                                            VALUES ('{tabla}', 'I', {json_new});
+                                        END;
+                                    """)
+                                    # Update
+                                    cur.execute(f"DROP TRIGGER IF EXISTS trg_auditoria_{tabla}_update;")
+                                    cur.execute(f"""
+                                        CREATE TRIGGER trg_auditoria_{tabla}_update
+                                        AFTER UPDATE ON {tabla} FOR EACH ROW
+                                        BEGIN
+                                            INSERT INTO AUDITORIA_LOGS (tabla_nombre, operacion, valores_old, valores_new)
+                                            VALUES ('{tabla}', 'U', {json_old}, {json_new});
+                                        END;
+                                    """)
+                            conn.commit()
+                        finally:
+                            cur.close()
+                        conn.close()
+                                
+                        st.success(f"✅ Triggers inyectados correctamente en: **{', '.join(tablas_seleccionadas)}**")
+                    except Exception as e:
+                        st.error(f"❌ Error al inyectar triggers: {e}")
+                elif not tablas_seleccionadas:
+                    st.info("Selecciona al menos una tabla de la lista para inyectar los triggers.")
+            else:
+                st.warning("No se encontraron tablas base para instrumentar. ¡Crea algunas tablas primero!")
+                
+        except Exception as e:
+            st.error(f"❌ Error al consultar las tablas: {e}")
+    elif motor_actual == "MongoDB":
+        st.info("ℹ️ MongoDB es una base de datos orientada a documentos y no utiliza Triggers SQL tradicionales. Su instrumentación se realiza a través de Change Streams o en la capa de la aplicación (en desarrollo para próximos pasos).")

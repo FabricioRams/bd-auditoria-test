@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 
 from database import load_logs
 from streamlit_autorefresh import st_autorefresh
@@ -12,13 +13,18 @@ st.title("Monitoreo en Vivo")
 # --- CARGA DE DATOS ---
 try:
     df = load_logs()
+    
+    # 1. Primero validamos si está vacía ANTES de tocar las fechas
+    if df.empty:
+        st.info("La tabla de auditoría está vacía. Realiza algunas operaciones en la base de datos.")
+        st.stop()
+        
+    # 2. Si hay datos, forzamos el formato datetime de forma segura
+    df["fecha_hora"] = pd.to_datetime(df["fecha_hora"])
     df["solo_fecha"] = df["fecha_hora"].dt.date
+    
 except Exception as exc:
     st.error(f"No se pudo consultar la tabla AUDITORIA_LOGS: {exc}")
-    st.stop()
-
-if df.empty:
-    st.info("La tabla de auditoria esta vacia. Realiza algunas operaciones en la base de datos.")
     st.stop()
 
 # ==========================================

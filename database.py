@@ -12,32 +12,49 @@ DB_CONFIG = {
     "password": "superpassword",
 }
 
-
 def get_connection():
     # Plan A: Usa credenciales de la sesión si existen
     if "db_creds" in st.session_state and st.session_state["db_creds"]:
-        creds = st.session_state["db_creds"]
-        if isinstance(creds, dict):
+        creds = st.session_state["db_creds"].copy()
+        motor = creds.pop("motor", "PostgreSQL")
+        
+        if motor == "PostgreSQL":
+            import psycopg2
             return psycopg2.connect(**creds)
-        else:
-            return psycopg2.connect(creds)
+        elif motor == "MySQL":
+            import pymysql
+            return pymysql.connect(**creds)
+        elif motor == "SQLite":
+            import sqlite3
+            return sqlite3.connect(creds["path"])
+        elif motor == "MongoDB":
+            from pymongo import MongoClient
+            return MongoClient(creds["uri"])
 
-    # Plan B: Si la app detecta una URL en secretos (nube), se conecta a Neon.
+    # Plan B: Si la app detecta una URL en secretos (nube), se conecta a Neon/Postgres.
     if "DATABASE_URL" in st.secrets:
+        import psycopg2
         return psycopg2.connect(st.secrets["DATABASE_URL"])
 
-    # Plan C: Usa la configuración local por defecto.
+    # Plan C: Usa la configuración local por defecto (PostgreSQL).
+    import psycopg2
     return psycopg2.connect(**DB_CONFIG)
-
 
 @st.cache_data(ttl=2)
 def load_logs():
+    # Nota: Esta función actualmente asume sintaxis SQL (PostgreSQL).
+    # Para visualizar logs de MongoDB, se adaptará en próximos pasos.
     conn = get_connection()
-    query = sql.SQL(
-        """
-        SELECT *
-        FROM public.AUDITORIA_LOGS
-        ORDER BY fecha_hora DESC
-        """
-    )
-    return pd.read_sql_query(query.as_string(conn), conn)
+    try:
+        query = sql.SQL(
+            """
+            SELECT *
+            FROM public.AUDITORIA_LOGS
+            ORDER BY fecha_hora DESC
+            """
+        )
+        return pd.read_sql_query(query.as_string(conn), conn)
+    except Exception:
+        # Fallback genérico para SQLite / MySQL
+        query = "SELECT * FROM AUDITORIA_LOGS ORDER BY fecha_hora DESC"
+        return pd.read_sql_query(query, conn)
