@@ -154,12 +154,22 @@ if st.session_state.get("db_creds"):
                 st.error(f"❌ Error al instalar el motor: {e}")
 
         st.markdown("---")
+    elif motor_actual == "MongoDB":
+        st.subheader("1. Instalar Estructura Base")
+        st.info("ℹ️ En MongoDB no es necesario inyectar scripts SQL. La colección `AUDITORIA_LOGS` se creará automáticamente cuando se inicie el Change Stream.")
+        st.markdown("---")
         
-        st.subheader("2. Instrumentar Tablas")
-        st.write("Selecciona las tablas a las que deseas agregarles el trigger de auditoría.")
-        
-        try:
-            conn = get_connection()
+    st.subheader("2. Instrumentar Tablas / Colecciones")
+    st.write("Selecciona las tablas o colecciones a las que deseas agregarles el trigger de auditoría o Change Stream.")
+    
+    try:
+        conn = get_connection()
+        if motor_actual == "MongoDB":
+            db_name = st.session_state["db_creds"]["dbname"]
+            db = conn[db_name]
+            tablas = [c for c in db.list_collection_names() if c != "AUDITORIA_LOGS"]
+            conn.close()
+        else:
             cur = conn.cursor()
             try:
                 if motor_actual == "PostgreSQL":
@@ -180,12 +190,26 @@ if st.session_state.get("db_creds"):
             finally:
                 cur.close()
             conn.close()
+        
+        if tablas:
+            tablas_seleccionadas = st.multiselect("Tablas/Colecciones disponibles:", tablas)
             
-            if tablas:
-                tablas_seleccionadas = st.multiselect("Tablas disponibles:", tablas)
-                
-                if st.button("💉 Inyectar Triggers de Auditoría") and tablas_seleccionadas:
-                    try:
+            btn_text = "🚀 Iniciar Auditoría (Change Stream)" if motor_actual == "MongoDB" else "💉 Inyectar Triggers de Auditoría"
+            
+            if st.button(btn_text) and tablas_seleccionadas:
+                try:
+                    if motor_actual == "MongoDB":
+                        import threading
+                        from mongo_auditor import start_mongo_audit
+                        
+                        uri = st.session_state["db_creds"]["uri"]
+                        dbname = st.session_state["db_creds"]["dbname"]
+                        
+                        t = threading.Thread(target=start_mongo_audit, args=(uri, dbname, tablas_seleccionadas), daemon=True)
+                        t.start()
+                        
+                        st.success(f"✅ Change Stream iniciado en segundo plano para: **{', '.join(tablas_seleccionadas)}**")
+                    else:
                         conn = get_connection()
                         cur = conn.cursor()
                         try:
@@ -281,14 +305,12 @@ if st.session_state.get("db_creds"):
                         conn.close()
                                 
                         st.success(f"✅ Triggers inyectados correctamente en: **{', '.join(tablas_seleccionadas)}**")
-                    except Exception as e:
-                        st.error(f"❌ Error al inyectar triggers: {e}")
-                elif not tablas_seleccionadas:
-                    st.info("Selecciona al menos una tabla de la lista para inyectar los triggers.")
-            else:
-                st.warning("No se encontraron tablas base para instrumentar. ¡Crea algunas tablas primero!")
-                
-        except Exception as e:
-            st.error(f"❌ Error al consultar las tablas: {e}")
-    elif motor_actual == "MongoDB":
-        st.info("ℹ️ MongoDB es una base de datos orientada a documentos y no utiliza Triggers SQL tradicionales. Su instrumentación se realiza a través de Change Streams o en la capa de la aplicación (en desarrollo para próximos pasos).")
+                except Exception as e:
+                    st.error(f"❌ Error al instrumentar tablas/colecciones: {e}")
+            elif not tablas_seleccionadas:
+                st.info("Selecciona al menos una tabla/colección de la lista.")
+        else:
+            st.warning("No se encontraron tablas/colecciones base para instrumentar. ¡Crea algunas primero!")
+            
+    except Exception as e:
+        st.error(f"❌ Error al consultar las tablas/colecciones: {e}")

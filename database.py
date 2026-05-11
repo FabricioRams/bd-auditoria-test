@@ -42,9 +42,29 @@ def get_connection():
 
 @st.cache_data(ttl=2)
 def load_logs():
-    # Nota: Esta función actualmente asume sintaxis SQL (PostgreSQL).
-    # Para visualizar logs de MongoDB, se adaptará en próximos pasos.
     conn = get_connection()
+    
+    motor = "PostgreSQL"
+    if "db_creds" in st.session_state and st.session_state["db_creds"]:
+        motor = st.session_state["db_creds"].get("motor", "PostgreSQL")
+        
+    if motor == "MongoDB":
+        db_name = st.session_state["db_creds"]["dbname"]
+        db = conn[db_name]
+        
+        if "AUDITORIA_LOGS" in db.list_collection_names():
+            logs = list(db["AUDITORIA_LOGS"].find().sort("fecha_hora", -1))
+            if logs:
+                df = pd.DataFrame(logs)
+                # Asegurar de que la columna _id de MongoDB no rompa nada si no se necesita
+                if "_id" in df.columns:
+                    df = df.drop(columns=["_id"])
+                return df
+                
+        # Retornar DataFrame vacío con las columnas esperadas
+        return pd.DataFrame(columns=["log_id", "tabla_nombre", "operacion", "usuario_bd", "ip_cliente", "fecha_hora", "valores_old", "valores_new"])
+
+    # Lógica para motores SQL
     try:
         query = sql.SQL(
             """
