@@ -99,6 +99,40 @@ df_filtrado = df[
 ]
 
 # ==========================================
+# ALERTAS INTELIGENTES DE SEGURIDAD
+# ==========================================
+st.markdown("### Alertas")
+alertas_detectadas = 0
+
+if not df_filtrado.empty:
+    # 1. Eliminaciones Masivas
+    num_deletes = len(df_filtrado[df_filtrado["operacion"] == "D"])
+    if num_deletes > 10:  # Umbral de alerta
+        st.error(f"**Eliminaciones Masivas:** Se detectaron {num_deletes} eliminaciones (DELETE) en el rango seleccionado.")
+        alertas_detectadas += 1
+
+    # 2. Operaciones en Horario Inusual (11:59 PM - 06:00 AM)
+    horas = df_filtrado["fecha_hora"].dt.hour
+    minutos = df_filtrado["fecha_hora"].dt.minute
+    # Es inusual si es estrictamente antes de las 6 AM, o exactamente a las 23:59
+    horario_inusual = df_filtrado[(horas < 6) | ((horas == 23) & (minutos == 59))]
+    if not horario_inusual.empty:
+        st.warning(f"**Horario Inusual:** {len(horario_inusual)} operaciones se realizaron en la madrugada (11:59 PM - 06:00 AM).")
+        alertas_detectadas += 1
+
+    # 3. Alta Actividad por un solo usuario
+    ops_por_usuario = df_filtrado["usuario_bd"].value_counts()
+    for user, count in ops_por_usuario.items():
+        if count > 50:  # Umbral de actividad inusual
+            st.warning(f"**Actividad Anormal:** El usuario `{user}` ha realizado una cantidad inusualmente alta de operaciones ({count}).")
+            alertas_detectadas += 1
+
+if alertas_detectadas == 0:
+    st.success("No se detectaron anomalías.")
+
+st.markdown("---")
+
+# ==========================================
 # PANEL PRINCIPAL (KPIs Y GRAFICOS)
 # ==========================================
 st.markdown("### Resumen de Actividad")
@@ -135,7 +169,47 @@ with grafico_col2:
 
 st.markdown("---")
 st.markdown("### Registro Detallado de Auditoria")
-st.dataframe(df_filtrado.drop(columns=["solo_fecha"]), use_container_width=True)
+
+tab_tabla, tab_logs = st.tabs(["Vista de Tabla", "Consola de Logs"])
+
+with tab_tabla:
+    st.dataframe(df_filtrado.drop(columns=["solo_fecha"]), use_container_width=True)
+
+with tab_logs:
+    st.markdown("#### Eventos en formato de log de texto")
+    
+    # Crear un formato de texto para simular una consola de logs
+    log_lines = []
+    
+    # Recorrer el dataframe desde el más antiguo al más reciente si se desea
+    # pero como df está ordenado DESC (el más reciente arriba), lo dejamos igual
+    # para que los últimos logs aparezcan primero.
+    for index, row in df_filtrado.iterrows():
+        fecha = row.get("fecha_hora", "")
+        op = row.get("operacion", "UNK")
+        tabla = row.get("tabla_nombre", "unknown")
+        user = row.get("usuario_bd", "unknown")
+        
+        # Mapear la operacion a una palabra más legible
+        op_name = "INSERT" if op == "I" else "UPDATE" if op == "U" else "DELETE" if op == "D" else op
+        
+        old_val = row.get("valores_old", "None")
+        new_val = row.get("valores_new", "None")
+        
+        linea_log = f"[{fecha}] [{op_name}] Usuario: {user} | Tabla: {tabla}"
+        if pd.notna(old_val) and str(old_val).strip() not in ["None", ""]:
+            linea_log += f" | OLD: {old_val}"
+        if pd.notna(new_val) and str(new_val).strip() not in ["None", ""]:
+            linea_log += f" | NEW: {new_val}"
+            
+        log_lines.append(linea_log)
+        
+    log_text = "\n".join(log_lines)
+    
+    if log_text:
+        st.code(log_text, language="log")
+    else:
+        st.info("No hay eventos de log para mostrar.")
 
 
 @st.cache_data

@@ -1,0 +1,4 @@
+saas_admin.db
+*.db
+__pycache__/
+.env

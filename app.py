@@ -29,6 +29,16 @@ def init_db():
         )
     ''')
     
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS conexiones_guardadas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL,
+            alias TEXT NOT NULL,
+            motor TEXT NOT NULL,
+            creds_json TEXT NOT NULL
+        )
+    ''')
+    
     # Insert default admin if table is empty
     cursor.execute("SELECT COUNT(*) FROM usuarios")
     if cursor.fetchone()[0] == 0:
@@ -63,7 +73,7 @@ if not st.session_state["autenticado"]:
     col1, col2, col3 = st.columns([1, 2, 1])
 
     with col2:
-        st.markdown("<h2 style='text-align: center;'>Acceso Restringido</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center;'>Inicia Sesión o Registrate</h2>", unsafe_allow_html=True)
         st.markdown("<p style='text-align: center; color: gray;'>Sistema de Auditoría de Base de Datos SaaS</p>", unsafe_allow_html=True)
 
         tab1, tab2 = st.tabs(["Iniciar Sesión", "Registrarse"])

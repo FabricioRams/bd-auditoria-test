@@ -8,10 +8,48 @@ if not st.session_state.get("autenticado", False):
     st.warning("⚠️ Acceso denegado. Por favor, inicia sesión en la página principal.")
     st.stop()
 
-st.title("🔌 Conectar a Base de Datos del Cliente (SaaS)")
+import sqlite3
+import json
+
+st.title("🔌 Conectar a Base de Datos del Cliente")
 st.markdown("Configura la conexión a la base de datos de tu cliente para inyectar remotamente el motor de auditoría.")
 
-# 2. Formulario de Conexión
+# --- Cargar conexiones guardadas ---
+usuario_actual = st.session_state.get("usuario_actual", "")
+conexiones_guardadas = []
+try:
+    conn_admin = sqlite3.connect('saas_admin.db')
+    cursor = conn_admin.cursor()
+    cursor.execute("SELECT id, alias, motor, creds_json FROM conexiones_guardadas WHERE username = ?", (usuario_actual,))
+    conexiones_guardadas = cursor.fetchall()
+    conn_admin.close()
+except Exception as e:
+    pass
+
+if conexiones_guardadas and not st.session_state.get("db_creds"):
+    st.subheader("📂 Conexiones Guardadas")
+    opciones = [{"id": 0, "label": "--- Nueva Conexión Manual ---", "creds": None}]
+    for row in conexiones_guardadas:
+        try:
+            creds_obj = json.loads(row[3])
+            opciones.append({"id": row[0], "label": f"{row[1]} ({row[2]})", "creds": creds_obj})
+        except:
+            pass
+            
+    seleccion = st.selectbox(
+        "Selecciona una conexión guardada:",
+        options=opciones,
+        format_func=lambda x: x["label"]
+    )
+    
+    if seleccion["id"] != 0:
+        if st.button("🚀 Conectar con conexión seleccionada", type="primary", use_container_width=True):
+            st.session_state["db_creds"] = seleccion["creds"]
+            st.success(f"✅ Conectado usando la conexión guardada: {seleccion['label']}")
+            st.rerun()
+    st.markdown("---")
+
+# 2. Formulario de Conexión Manual
 with st.expander("🔗 Configurar Credenciales de Conexión", expanded=not bool(st.session_state.get("db_creds"))):
     motor = st.selectbox("Motor de Base de Datos", ["PostgreSQL", "MySQL", "SQLite", "MongoDB"])
     
@@ -37,6 +75,9 @@ with st.expander("🔗 Configurar Credenciales de Conexión", expanded=not bool(
                 db_name = st.text_input("Nombre de la Base de Datos")
                 db_user = st.text_input("Usuario (opcional)", value="")
                 db_password = st.text_input("Contraseña (opcional)", type="password")
+        
+        guardar_nueva = st.checkbox("💾 Guardar esta conexión para el futuro", value=True)
+        alias_nueva = st.text_input("Alias para guardar (ej. 'Producción Cliente X')", value="Mi Base de Datos")
         
         submit_conn = st.form_submit_button("Probar Conexión y Guardar", use_container_width=True)
         
@@ -86,6 +127,20 @@ with st.expander("🔗 Configurar Credenciales de Conexión", expanded=not bool(
                     client.close()
                     creds = {"motor": motor, "uri": uri, "dbname": db_name}
                     db_display_name = db_name
+                
+                # Guardar conexión en DB local si el check está marcado
+                if guardar_nueva:
+                    try:
+                        conn_admin = sqlite3.connect('saas_admin.db')
+                        cursor = conn_admin.cursor()
+                        cursor.execute(
+                            "INSERT INTO conexiones_guardadas (username, alias, motor, creds_json) VALUES (?, ?, ?, ?)",
+                            (usuario_actual, alias_nueva, motor, json.dumps(creds))
+                        )
+                        conn_admin.commit()
+                        conn_admin.close()
+                    except Exception as ex:
+                        st.warning(f"La conexión fue exitosa pero no se pudo guardar en el historial: {ex}")
                 
                 st.session_state["db_creds"] = creds
                 st.success(f"✅ Conexión exitosa a la base de datos '{db_display_name}' ({motor}).")
