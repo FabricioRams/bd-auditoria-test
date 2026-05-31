@@ -157,7 +157,7 @@ if st.session_state.get("db_creds"):
     # Importar función genérica de conexión
     import sys
     sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-    from database import get_connection
+    from utils.database import get_connection
 
     motor_actual = st.session_state["db_creds"].get("motor", "PostgreSQL")
     st.info(f"Conectado actualmente al motor: **{motor_actual}**")
@@ -174,9 +174,7 @@ if st.session_state.get("db_creds"):
         st.write(f"Esta acción ejecutará `{sql_filename}` para crear la tabla `AUDITORIA_LOGS` (y funciones si aplica) en la base de datos conectada.")
         
         if st.button("🚀 Instalar Motor de Auditoría", type="primary"):
-            sql_file_path = sql_filename
-            if not os.path.exists(sql_file_path):
-                sql_file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), sql_filename)
+            sql_file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "sql_scripts", sql_filename)
                 
             try:
                 with open(sql_file_path, "r", encoding="utf-8") as f:
@@ -255,7 +253,7 @@ if st.session_state.get("db_creds"):
                 try:
                     if motor_actual == "MongoDB":
                         import threading
-                        from mongo_auditor import start_mongo_audit
+                        from utils.mongo_auditor import start_mongo_audit
                         
                         uri = st.session_state["db_creds"]["uri"]
                         dbname = st.session_state["db_creds"]["dbname"]

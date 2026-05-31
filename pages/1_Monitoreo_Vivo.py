@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-from database import load_logs
+from utils.database import load_logs
 from streamlit_autorefresh import st_autorefresh
 
 if not st.session_state.get("autenticado", False):
