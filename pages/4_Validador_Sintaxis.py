@@ -39,7 +39,7 @@ if validar_btn:
                     data = response.json()
                     
                     if data.get("valid"):
-                        st.success("✅ ¡Consulta válida!")
+                        st.success("¡Consulta válida!")
                         st.info(f"**Dialecto detectado:** {data.get('dialect', 'N/A')} (Confianza: {data.get('confidence', 100)}%)")
                         
                         compatibles = data.get("compatible", [])
@@ -53,7 +53,7 @@ if validar_btn:
                                 for s in sugerencias:
                                     st.write(s)
                     else:
-                        st.error("⚠️ La consulta tiene errores de sintaxis.")
+                        st.error("La consulta tiene errores de sintaxis.")
                         
                         errores = data.get("errors", [])
                         for error in errores:
