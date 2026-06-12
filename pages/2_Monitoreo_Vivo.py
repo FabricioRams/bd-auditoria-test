@@ -28,59 +28,69 @@ except Exception as exc:
     st.stop()
 
 # ==========================================
-# BARRA LATERAL (FILTROS AVANZADOS)
+# SECCIÓN SUPERIOR (FILTROS AVANZADOS Y OPCIONES)
 # ==========================================
-st.sidebar.markdown("### Modo Monitoreo")
-auto_refresh = st.sidebar.checkbox("Activar recarga ")
-if auto_refresh:
-    # Recarga la página sola cada 5000 milisegundos (5 segundos)
-    st_autorefresh(interval=5000, key="datarefresh")
-st.sidebar.markdown("---")
-st.sidebar.header("Filtros Avanzados")
-st.sidebar.info(f"Auditor logueado: {st.session_state.get('usuario_actual', 'N/A')}")
+with st.expander("⚙️ Opciones y Filtros Avanzados", expanded=True):
+    col_opt1, col_opt2, col_opt3 = st.columns([2, 2, 1])
+    
+    with col_opt1:
+        auto_refresh = st.checkbox("Activar recarga automática")
+        if auto_refresh:
+            # Recarga la página sola cada 5000 milisegundos (5 segundos)
+            st_autorefresh(interval=5000, key="datarefresh")
+            
+    with col_opt2:
+        st.info(f"Auditor logueado: {st.session_state.get('usuario_actual', 'N/A')}")
+        
+    with col_opt3:
+        if st.button("Cerrar Sesion", use_container_width=True, key="logout_vivo"):
+            st.session_state["autenticado"] = False
+            st.rerun()
 
-if st.sidebar.button("Cerrar Sesion", use_container_width=True, key="logout_vivo"):
-    st.session_state["autenticado"] = False
-    st.rerun()
+    st.markdown("---")
+    
+    col_f1, col_f2, col_f3, col_f4 = st.columns(4)
+    
+    fecha_min = df["solo_fecha"].min()
+    fecha_max = df["solo_fecha"].max()
 
-st.sidebar.markdown("---")
+    with col_f1:
+        if fecha_min == fecha_max:
+            fecha_rango = st.date_input("Rango de Fechas", fecha_min, key="fecha_vivo")
+            rango_inicio, rango_fin = fecha_rango, fecha_rango
+        else:
+            fecha_rango = st.date_input("Rango de Fechas", [fecha_min, fecha_max], key="fecha_vivo")
+            if len(fecha_rango) == 2:
+                rango_inicio, rango_fin = fecha_rango
+            else:
+                rango_inicio, rango_fin = fecha_rango[0], fecha_rango[0]
 
-fecha_min = df["solo_fecha"].min()
-fecha_max = df["solo_fecha"].max()
+    with col_f2:
+        usuarios_disponibles = sorted(df["usuario_bd"].dropna().unique().tolist())
+        usuarios_seleccionados = st.multiselect(
+            "Usuario de BD",
+            options=usuarios_disponibles,
+            default=usuarios_disponibles,
+            key="usuario_vivo",
+        )
 
-if fecha_min == fecha_max:
-    fecha_rango = st.sidebar.date_input("Rango de Fechas", fecha_min, key="fecha_vivo")
-    rango_inicio, rango_fin = fecha_rango, fecha_rango
-else:
-    fecha_rango = st.sidebar.date_input("Rango de Fechas", [fecha_min, fecha_max], key="fecha_vivo")
-    if len(fecha_rango) == 2:
-        rango_inicio, rango_fin = fecha_rango
-    else:
-        rango_inicio, rango_fin = fecha_rango[0], fecha_rango[0]
+    with col_f3:
+        tablas_disponibles = sorted(df["tabla_nombre"].dropna().unique().tolist())
+        tablas_seleccionadas = st.multiselect(
+            "Tabla",
+            options=tablas_disponibles,
+            default=tablas_disponibles,
+            key="tabla_vivo",
+        )
 
-usuarios_disponibles = sorted(df["usuario_bd"].dropna().unique().tolist())
-usuarios_seleccionados = st.sidebar.multiselect(
-    "Usuario de BD",
-    options=usuarios_disponibles,
-    default=usuarios_disponibles,
-    key="usuario_vivo",
-)
-
-tablas_disponibles = sorted(df["tabla_nombre"].dropna().unique().tolist())
-tablas_seleccionadas = st.sidebar.multiselect(
-    "Tabla",
-    options=tablas_disponibles,
-    default=tablas_disponibles,
-    key="tabla_vivo",
-)
-
-operaciones_disponibles = ["I", "U", "D"]
-operaciones_seleccionadas = st.sidebar.multiselect(
-    "Operacion",
-    options=operaciones_disponibles,
-    default=operaciones_disponibles,
-    key="operacion_vivo",
-)
+    with col_f4:
+        operaciones_disponibles = ["I", "U", "D"]
+        operaciones_seleccionadas = st.multiselect(
+            "Operacion",
+            options=operaciones_disponibles,
+            default=operaciones_disponibles,
+            key="operacion_vivo",
+        )
 
 # Persistir variables globales en session_state.
 st.session_state["rango_inicio_vivo"] = rango_inicio
