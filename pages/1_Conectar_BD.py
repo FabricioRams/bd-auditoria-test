@@ -5,7 +5,7 @@ st.set_page_config(page_title="Conectar a BD Cliente", layout="wide")
 
 # 1. Validar autenticación
 if not st.session_state.get("autenticado", False):
-    st.warning("⚠️ Acceso denegado. Por favor, inicia sesión en la página principal.")
+    st.warning(" Acceso denegado. Por favor, inicia sesión en la página principal.")
     st.stop()
 
 import sqlite3
@@ -27,7 +27,7 @@ except Exception as e:
     pass
 
 if conexiones_guardadas and not st.session_state.get("db_creds"):
-    st.subheader("📂 Conexiones Guardadas")
+    st.subheader(" Conexiones Guardadas")
     opciones = [{"id": 0, "label": "--- Nueva Conexión Manual ---", "creds": None}]
     for row in conexiones_guardadas:
         try:
@@ -43,9 +43,9 @@ if conexiones_guardadas and not st.session_state.get("db_creds"):
     )
     
     if seleccion["id"] != 0:
-        if st.button("🚀 Conectar con conexión seleccionada", type="primary", use_container_width=True):
+        if st.button(" Conectar con conexión seleccionada", type="primary", use_container_width=True):
             st.session_state["db_creds"] = seleccion["creds"]
-            st.success(f"✅ Conectado usando la conexión guardada: {seleccion['label']}")
+            st.success(f" Conectado usando la conexión guardada: {seleccion['label']}")
             st.rerun()
     st.markdown("---")
 
@@ -173,7 +173,7 @@ if st.session_state.get("db_creds"):
         
         st.write(f"Esta acción ejecutará `{sql_filename}` para crear la tabla `AUDITORIA_LOGS` (y funciones si aplica) en la base de datos conectada.")
         
-        if st.button("🚀 Instalar Motor de Auditoría", type="primary"):
+        if st.button(" Instalar Motor de Auditoría", type="primary"):
             sql_file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "sql_scripts", sql_filename)
                 
             try:
@@ -200,11 +200,11 @@ if st.session_state.get("db_creds"):
                             cur.close()
                 finally:
                     conn.close()
-                st.success(f"✅ Motor de auditoría ({motor_actual}) instalado correctamente.")
+                st.success(f" Motor de auditoría ({motor_actual}) instalado correctamente.")
             except FileNotFoundError:
-                st.error(f"❌ No se encontró el archivo de núcleo: {sql_file_path}")
+                st.error(f" No se encontró el archivo de núcleo: {sql_file_path}")
             except Exception as e:
-                st.error(f"❌ Error al instalar el motor: {e}")
+                st.error(f" Error al instalar el motor: {e}")
 
         st.markdown("---")
     elif motor_actual == "MongoDB":
@@ -247,7 +247,7 @@ if st.session_state.get("db_creds"):
         if tablas:
             tablas_seleccionadas = st.multiselect("Tablas/Colecciones disponibles:", tablas)
             
-            btn_text = "🚀 Iniciar Auditoría (Change Stream)" if motor_actual == "MongoDB" else "💉 Inyectar Triggers de Auditoría"
+            btn_text = " Iniciar Auditoría (Change Stream)" if motor_actual == "MongoDB" else "💉 Inyectar Triggers de Auditoría"
             
             if st.button(btn_text) and tablas_seleccionadas:
                 try:
@@ -261,7 +261,7 @@ if st.session_state.get("db_creds"):
                         t = threading.Thread(target=start_mongo_audit, args=(uri, dbname, tablas_seleccionadas), daemon=True)
                         t.start()
                         
-                        st.success(f"✅ Change Stream iniciado en segundo plano para: **{', '.join(tablas_seleccionadas)}**")
+                        st.success(f" Change Stream iniciado en segundo plano para: **{', '.join(tablas_seleccionadas)}**")
                     else:
                         conn = get_connection()
                         cur = conn.cursor()
@@ -357,13 +357,13 @@ if st.session_state.get("db_creds"):
                             cur.close()
                         conn.close()
                                 
-                        st.success(f"✅ Triggers inyectados correctamente en: **{', '.join(tablas_seleccionadas)}**")
+                        st.success(f" Triggers inyectados correctamente en: **{', '.join(tablas_seleccionadas)}**")
                 except Exception as e:
-                    st.error(f"❌ Error al instrumentar tablas/colecciones: {e}")
+                    st.error(f" Error al instrumentar tablas/colecciones: {e}")
             elif not tablas_seleccionadas:
                 st.info("Selecciona al menos una tabla/colección de la lista.")
         else:
             st.warning("No se encontraron tablas/colecciones base para instrumentar. ¡Crea algunas primero!")
             
     except Exception as e:
-        st.error(f"❌ Error al consultar las tablas/colecciones: {e}")
+        st.error(f" Error al consultar las tablas/colecciones: {e}")
