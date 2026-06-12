@@ -109,7 +109,7 @@ if not st.session_state["autenticado"]:
                             st.session_state["rol"] = rol
                             
                             # Redirección automática a la página de conexión
-                            st.switch_page("pages/3_Conectar_BD.py")
+                            st.switch_page("pages/1_Conectar_BD.py")
                         else:
                             conn.close()
                             st.error("Credenciales incorrectas. Acceso denegado.")
