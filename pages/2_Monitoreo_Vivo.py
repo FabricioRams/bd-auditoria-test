@@ -1,236 +1,235 @@
 import streamlit as st
 import pandas as pd
-
+import os, sys
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+from utils.styles import GLOBAL_CSS, page_header, section_title
 from utils.database import load_logs
 from streamlit_autorefresh import st_autorefresh
 
+st.set_page_config(page_title="Monitoreo en Vivo — AuditDB", layout="wide", page_icon="📡")
+st.markdown(GLOBAL_CSS, unsafe_allow_html=True)
+
 if not st.session_state.get("autenticado", False):
-    st.warning("Debes iniciar sesion para ver esta pagina.")
+    st.markdown("""<div style="text-align:center; padding:3rem; color:#475569;">
+        <div style="font-size:2rem; margin-bottom:1rem;">🔒</div>
+        <p>Acceso denegado. <a href="/" style="color:#3b82f6;">Inicia sesión</a></p>
+    </div>""", unsafe_allow_html=True)
     st.stop()
 
-st.title("Monitoreo en Vivo")
+page_header("📡", "Monitoreo en Vivo", "Registro de cambios en tiempo real")
 
-# --- CARGA DE DATOS ---
+# ===== CARGAR DATOS =====
 try:
     df = load_logs()
-    
-    # 1. Primero validamos si está vacía ANTES de tocar las fechas
     if df.empty:
-        st.info("La tabla de auditoría está vacía. Realiza algunas operaciones en la base de datos.")
+        st.markdown("""
+        <div style="text-align:center; padding:3rem; border:1px dashed #1e2d4d; border-radius:12px; margin-top:1rem;">
+            <div style="font-size:2.5rem; margin-bottom:1rem;">📭</div>
+            <h3 style="color:#475569; margin:0;">Sin eventos registrados</h3>
+            <p style="color:#334155; font-size:0.875rem; margin-top:0.5rem;">La tabla de auditoría está vacía. Realiza operaciones en la base de datos conectada.</p>
+        </div>
+        """, unsafe_allow_html=True)
         st.stop()
-        
-    # 2. Si hay datos, forzamos el formato datetime de forma segura
     df["fecha_hora"] = pd.to_datetime(df["fecha_hora"])
     df["solo_fecha"] = df["fecha_hora"].dt.date
-    
 except Exception as exc:
-    st.error(f"No se pudo consultar la tabla AUDITORIA_LOGS: {exc}")
+    st.error(f"No se pudo consultar AUDITORIA_LOGS: {exc}")
     st.stop()
 
-# ==========================================
-# SECCIÓN SUPERIOR (FILTROS AVANZADOS Y OPCIONES)
-# ==========================================
-with st.expander("⚙️ Opciones y Filtros Avanzados", expanded=True):
-    col_opt1, col_opt2, col_opt3 = st.columns([2, 2, 1])
-    
-    with col_opt1:
-        auto_refresh = st.checkbox("Activar recarga automática")
-        if auto_refresh:
-            # Recarga la página sola cada 5000 milisegundos (5 segundos)
-            st_autorefresh(interval=5000, key="datarefresh")
-            
-    with col_opt2:
-        st.info(f"Auditor logueado: {st.session_state.get('usuario_actual', 'N/A')}")
-        
-    with col_opt3:
-        if st.button("Cerrar Sesion", use_container_width=True, key="logout_vivo"):
-            st.session_state["autenticado"] = False
-            st.rerun()
+# ===== BARRA SUPERIOR =====
+top_col1, top_col2, top_col3 = st.columns([3, 2, 1])
+with top_col1:
+    auto_refresh = st.checkbox("🔄  Recarga automática (cada 5 s)")
+    if auto_refresh:
+        st_autorefresh(interval=5000, key="datarefresh")
+with top_col2:
+    user_now = st.session_state.get('usuario_actual', 'N/A')
+    st.markdown(f"""
+    <div style="background:#0f1628; border:1px solid #1e2d4d; border-radius:8px;
+                padding:0.5rem 0.875rem; font-size:0.78rem; color:#94a3b8; margin-top:0.25rem;">
+        👤 Auditor: <strong style="color:#e2e8f0;">{user_now}</strong>
+    </div>
+    """, unsafe_allow_html=True)
+with top_col3:
+    if st.button("Cerrar sesión", use_container_width=True, key="logout_vivo"):
+        st.session_state["autenticado"] = False
+        st.rerun()
 
-    st.markdown("---")
-    
+st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+
+# ===== FILTROS =====
+with st.expander("⚙️  Filtros avanzados", expanded=True):
     col_f1, col_f2, col_f3, col_f4 = st.columns(4)
-    
+
     fecha_min = df["solo_fecha"].min()
     fecha_max = df["solo_fecha"].max()
 
     with col_f1:
         if fecha_min == fecha_max:
-            fecha_rango = st.date_input("Rango de Fechas", fecha_min, key="fecha_vivo")
+            fecha_rango = st.date_input("Rango de fechas", fecha_min, key="fecha_vivo")
             rango_inicio, rango_fin = fecha_rango, fecha_rango
         else:
-            fecha_rango = st.date_input("Rango de Fechas", [fecha_min, fecha_max], key="fecha_vivo")
-            if len(fecha_rango) == 2:
-                rango_inicio, rango_fin = fecha_rango
-            else:
-                rango_inicio, rango_fin = fecha_rango[0], fecha_rango[0]
+            fecha_rango = st.date_input("Rango de fechas", [fecha_min, fecha_max], key="fecha_vivo")
+            rango_inicio, rango_fin = (fecha_rango[0], fecha_rango[1]) if len(fecha_rango) == 2 else (fecha_rango[0], fecha_rango[0])
 
     with col_f2:
         usuarios_disponibles = sorted(df["usuario_bd"].dropna().unique().tolist())
-        usuarios_seleccionados = st.multiselect(
-            "Usuario de BD",
-            options=usuarios_disponibles,
-            default=usuarios_disponibles,
-            key="usuario_vivo",
-        )
+        usuarios_seleccionados = st.multiselect("Usuario BD", options=usuarios_disponibles, default=usuarios_disponibles, key="usuario_vivo")
 
     with col_f3:
         tablas_disponibles = sorted(df["tabla_nombre"].dropna().unique().tolist())
-        tablas_seleccionadas = st.multiselect(
-            "Tabla",
-            options=tablas_disponibles,
-            default=tablas_disponibles,
-            key="tabla_vivo",
-        )
+        tablas_seleccionadas = st.multiselect("Tabla", options=tablas_disponibles, default=tablas_disponibles, key="tabla_vivo")
 
     with col_f4:
-        operaciones_disponibles = ["I", "U", "D"]
+        OPS = {"I": "INSERT", "U": "UPDATE", "D": "DELETE"}
         operaciones_seleccionadas = st.multiselect(
-            "Operacion",
-            options=operaciones_disponibles,
-            default=operaciones_disponibles,
-            key="operacion_vivo",
+            "Operación",
+            options=["I", "U", "D"],
+            default=["I", "U", "D"],
+            format_func=lambda x: f"{OPS.get(x, x)}",
+            key="operacion_vivo"
         )
 
-# Persistir variables globales en session_state.
-st.session_state["rango_inicio_vivo"] = rango_inicio
-st.session_state["rango_fin_vivo"] = rango_fin
-st.session_state["usuarios_seleccionados_vivo"] = usuarios_seleccionados
-st.session_state["tablas_seleccionadas_vivo"] = tablas_seleccionadas
-st.session_state["operaciones_seleccionadas_vivo"] = operaciones_seleccionadas
-
-# --- APLICAR FILTROS ---
+# ===== APLICAR FILTROS =====
 df_filtrado = df[
-    (df["operacion"].isin(operaciones_seleccionadas))
-    & (df["tabla_nombre"].isin(tablas_seleccionadas))
-    & (df["usuario_bd"].isin(usuarios_seleccionados))
-    & (df["solo_fecha"] >= rango_inicio)
-    & (df["solo_fecha"] <= rango_fin)
+    df["operacion"].isin(operaciones_seleccionadas) &
+    df["tabla_nombre"].isin(tablas_seleccionadas) &
+    df["usuario_bd"].isin(usuarios_seleccionados) &
+    (df["solo_fecha"] >= rango_inicio) &
+    (df["solo_fecha"] <= rango_fin)
 ]
 
-# ==========================================
-# ALERTAS INTELIGENTES DE SEGURIDAD
-# ==========================================
-st.markdown("### Alertas")
-alertas_detectadas = 0
+st.markdown("<hr>", unsafe_allow_html=True)
+
+# ===== ALERTAS =====
+section_title("Alertas de seguridad")
+alertas = 0
 
 if not df_filtrado.empty:
-    # 1. Eliminaciones Masivas
     num_deletes = len(df_filtrado[df_filtrado["operacion"] == "D"])
-    if num_deletes > 10:  # Umbral de alerta
-        st.error(f"**Eliminaciones Masivas:** Se detectaron {num_deletes} eliminaciones (DELETE) en el rango seleccionado.")
-        alertas_detectadas += 1
+    if num_deletes > 10:
+        st.markdown(f"""
+        <div style="background:#ef444415; border:1px solid #ef444440; border-left:3px solid #ef4444;
+                    border-radius:8px; padding:0.75rem 1rem; margin-bottom:0.5rem; font-size:0.875rem;">
+            🚨 <strong style="color:#ef4444;">Eliminaciones masivas</strong> — Se detectaron <strong>{num_deletes}</strong> operaciones DELETE en el rango seleccionado.
+        </div>
+        """, unsafe_allow_html=True)
+        alertas += 1
 
-    # 2. Operaciones en Horario Inusual (11:59 PM - 06:00 AM)
     horas = df_filtrado["fecha_hora"].dt.hour
     minutos = df_filtrado["fecha_hora"].dt.minute
-    # Es inusual si es estrictamente antes de las 6 AM, o exactamente a las 23:59
     horario_inusual = df_filtrado[(horas < 6) | ((horas == 23) & (minutos == 59))]
     if not horario_inusual.empty:
-        st.warning(f"**Horario Inusual:** {len(horario_inusual)} operaciones se realizaron en la madrugada (11:59 PM - 06:00 AM).")
-        alertas_detectadas += 1
+        st.markdown(f"""
+        <div style="background:#f59e0b15; border:1px solid #f59e0b40; border-left:3px solid #f59e0b;
+                    border-radius:8px; padding:0.75rem 1rem; margin-bottom:0.5rem; font-size:0.875rem;">
+            ⚠️ <strong style="color:#f59e0b;">Horario inusual</strong> — {len(horario_inusual)} operaciones entre las 11:59 PM y 06:00 AM.
+        </div>
+        """, unsafe_allow_html=True)
+        alertas += 1
 
-    # 3. Alta Actividad por un solo usuario
-    ops_por_usuario = df_filtrado["usuario_bd"].value_counts()
-    for user, count in ops_por_usuario.items():
-        if count > 50:  # Umbral de actividad inusual
-            st.warning(f"**Actividad Anormal:** El usuario `{user}` ha realizado una cantidad inusualmente alta de operaciones ({count}).")
-            alertas_detectadas += 1
+    for user, count in df_filtrado["usuario_bd"].value_counts().items():
+        if count > 50:
+            st.markdown(f"""
+            <div style="background:#f59e0b15; border:1px solid #f59e0b40; border-left:3px solid #f59e0b;
+                        border-radius:8px; padding:0.75rem 1rem; margin-bottom:0.5rem; font-size:0.875rem;">
+                ⚠️ <strong style="color:#f59e0b;">Actividad anormal</strong> — El usuario <code style="background:#050810; padding:1px 5px; border-radius:3px;">{user}</code> realizó <strong>{count}</strong> operaciones.
+            </div>
+            """, unsafe_allow_html=True)
+            alertas += 1
 
-if alertas_detectadas == 0:
-    st.success("No se detectaron anomalías.")
+if alertas == 0:
+    st.markdown("""
+    <div style="background:#10b98115; border:1px solid #10b98140; border-left:3px solid #10b981;
+                border-radius:8px; padding:0.75rem 1rem; font-size:0.875rem;">
+        ✅ <strong style="color:#10b981;">Sin anomalías detectadas</strong> — El sistema opera dentro de los parámetros normales.
+    </div>
+    """, unsafe_allow_html=True)
 
-st.markdown("---")
+st.markdown("<hr>", unsafe_allow_html=True)
 
-# ==========================================
-# PANEL PRINCIPAL (KPIs Y GRAFICOS)
-# ==========================================
-st.markdown("### Resumen de Actividad")
-col1, col2, col3, col4 = st.columns(4)
+# ===== KPIs =====
+section_title("Resumen de actividad")
+k1, k2, k3, k4 = st.columns(4)
 
-with col1:
-    st.metric(label="Total Operaciones", value=len(df_filtrado))
-with col2:
-    st.metric(label="Nuevos (INSERT)", value=len(df_filtrado[df_filtrado["operacion"] == "I"]))
-with col3:
-    st.metric(label="Modificados (UPDATE)", value=len(df_filtrado[df_filtrado["operacion"] == "U"]))
-with col4:
-    st.metric(label="Eliminados (DELETE)", value=len(df_filtrado[df_filtrado["operacion"] == "D"]))
+total = len(df_filtrado)
+inserts = len(df_filtrado[df_filtrado["operacion"] == "I"])
+updates = len(df_filtrado[df_filtrado["operacion"] == "U"])
+deletes = len(df_filtrado[df_filtrado["operacion"] == "D"])
 
-st.markdown("---")
-st.markdown("### Analisis Visual")
-grafico_col1, grafico_col2 = st.columns(2)
+with k1:
+    st.metric("Total de operaciones", f"{total:,}")
+with k2:
+    st.metric("INSERT", f"{inserts:,}", delta=None)
+with k3:
+    st.metric("UPDATE", f"{updates:,}", delta=None)
+with k4:
+    st.metric("DELETE", f"{deletes:,}", delta=None)
 
-with grafico_col1:
-    st.write("Operaciones por Tabla")
+st.markdown("<hr>", unsafe_allow_html=True)
+
+# ===== GRÁFICOS =====
+section_title("Análisis visual")
+g1, g2 = st.columns(2)
+
+with g1:
+    st.markdown("<p style='font-size:0.78rem; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#475569; margin-bottom:0.5rem;'>Operaciones por tabla</p>", unsafe_allow_html=True)
     if not df_filtrado.empty:
         ops_por_tabla = df_filtrado["tabla_nombre"].value_counts()
         st.bar_chart(ops_por_tabla, color="#3b82f6")
     else:
-        st.info("No hay datos para graficar.")
+        st.info("Sin datos para graficar.")
 
-with grafico_col2:
-    st.write("Linea de Tiempo de Cambios")
+with g2:
+    st.markdown("<p style='font-size:0.78rem; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; color:#475569; margin-bottom:0.5rem;'>Línea de tiempo de cambios</p>", unsafe_allow_html=True)
     if not df_filtrado.empty:
         ops_por_dia = df_filtrado["solo_fecha"].value_counts().sort_index()
-        st.line_chart(ops_por_dia, color="#ef4444")
+        st.line_chart(ops_por_dia, color="#06b6d4")
     else:
-        st.info("No hay datos para graficar.")
+        st.info("Sin datos para graficar.")
 
-st.markdown("---")
-st.markdown("### Registro Detallado de Auditoria")
+st.markdown("<hr>", unsafe_allow_html=True)
 
-tab_tabla, tab_logs = st.tabs(["Vista de Tabla", "Consola de Logs"])
+# ===== REGISTRO DETALLADO =====
+section_title("Registro detallado de auditoría")
+tab_tabla, tab_logs = st.tabs(["📋  Vista de tabla", "🖥️  Consola de logs"])
 
 with tab_tabla:
-    st.dataframe(df_filtrado.drop(columns=["solo_fecha"]), use_container_width=True)
+    st.dataframe(df_filtrado.drop(columns=["solo_fecha"]), use_container_width=True, hide_index=True)
 
 with tab_logs:
-    st.markdown("#### Eventos en formato de log de texto")
-    
-    # Crear un formato de texto para simular una consola de logs
     log_lines = []
-    
-    # Recorrer el dataframe desde el más antiguo al más reciente si se desea
-    # pero como df está ordenado DESC (el más reciente arriba), lo dejamos igual
-    # para que los últimos logs aparezcan primero.
-    for index, row in df_filtrado.iterrows():
+    OP_COLORS = {"INSERT": "[INS]", "UPDATE": "[UPD]", "DELETE": "[DEL]"}
+    for _, row in df_filtrado.iterrows():
         fecha = row.get("fecha_hora", "")
         op = row.get("operacion", "UNK")
         tabla = row.get("tabla_nombre", "unknown")
         user = row.get("usuario_bd", "unknown")
-        
-        # Mapear la operacion a una palabra más legible
-        op_name = "INSERT" if op == "I" else "UPDATE" if op == "U" else "DELETE" if op == "D" else op
-        
-        old_val = row.get("valores_old", "None")
-        new_val = row.get("valores_new", "None")
-        
-        linea_log = f"[{fecha}] [{op_name}] Usuario: {user} | Tabla: {tabla}"
+        op_name = {"I": "INSERT", "U": "UPDATE", "D": "DELETE"}.get(op, op)
+        tag = OP_COLORS.get(op_name, "[???]")
+        linea = f"[{fecha}] {tag} user={user} table={tabla}"
+        old_val = row.get("valores_old", "")
+        new_val = row.get("valores_new", "")
         if pd.notna(old_val) and str(old_val).strip() not in ["None", ""]:
-            linea_log += f" | OLD: {old_val}"
+            linea += f" | old={old_val}"
         if pd.notna(new_val) and str(new_val).strip() not in ["None", ""]:
-            linea_log += f" | NEW: {new_val}"
-            
-        log_lines.append(linea_log)
-        
-    log_text = "\n".join(log_lines)
-    
-    if log_text:
-        st.code(log_text, language="log")
+            linea += f" | new={new_val}"
+        log_lines.append(linea)
+    if log_lines:
+        st.code("\n".join(log_lines), language="log")
     else:
-        st.info("No hay eventos de log para mostrar.")
+        st.info("Sin eventos en el rango seleccionado.")
 
+st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
 
 @st.cache_data
 def convert_df(df_to_convert):
     return df_to_convert.to_csv(index=False).encode("utf-8")
 
-
-csv = convert_df(df_filtrado.drop(columns=["solo_fecha"]))
+csv_data = convert_df(df_filtrado.drop(columns=["solo_fecha"]))
 st.download_button(
-    label="Descargar Reporte en CSV",
-    data=csv,
+    label="⬇️  Exportar reporte CSV",
+    data=csv_data,
     file_name="reporte_auditoria.csv",
     mime="text/csv",
 )
