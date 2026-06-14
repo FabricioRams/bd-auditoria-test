@@ -3,7 +3,7 @@ import os, sys, json, sqlite3
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from utils.styles import GLOBAL_CSS, page_header, section_title
 
-st.set_page_config(page_title="Conectar BD — AuditDB", layout="wide", page_icon="🔌")
+st.set_page_config(page_title="Conectar BD — AuditDB", layout="wide")
 st.markdown(GLOBAL_CSS, unsafe_allow_html=True)
 
 if not st.session_state.get("autenticado", False):
