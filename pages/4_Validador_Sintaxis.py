@@ -14,7 +14,7 @@ if not st.session_state.get("autenticado", False):
     </div>""", unsafe_allow_html=True)
     st.stop()
 
-page_header("", "Validador de Sintaxis SQL/NoSQL", "Verifica consultas antes de ejecutarlas en producción")
+page_header("O", "Validador de Sintaxis SQL/NoSQL", "Verifica consultas antes de ejecutarlas en producción")
 
 # ===== EJEMPLOS RÁPIDOS =====
 section_title("Ejemplos rápidos")

@@ -16,7 +16,7 @@ if not st.session_state.get("autenticado", False):
     </div>""", unsafe_allow_html=True)
     st.stop()
 
-page_header("", "Monitoreo en Vivo", "Registro de cambios en tiempo real")
+page_header("O", "Monitoreo en Vivo", "Registro de cambios en tiempo real")
 
 # ===== CARGAR DATOS =====
 try:

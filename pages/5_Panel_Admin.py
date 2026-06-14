@@ -25,7 +25,7 @@ if st.session_state.get("rol") != "admin":
     """, unsafe_allow_html=True)
     st.stop()
 
-page_header("", "Panel de Administración", "Gestión de usuarios, accesos y métricas del sistema")
+page_header("O", "Panel de Administración", "Gestión de usuarios, accesos y métricas del sistema")
 
 db_path = "saas_admin.db"
 
