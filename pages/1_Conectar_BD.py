@@ -3,19 +3,19 @@ import os, sys, json, sqlite3
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from utils.styles import GLOBAL_CSS, page_header, section_title
 
-st.set_page_config(page_title="Conectar BD — AuditDB", layout="wide")
+st.set_page_config(page_title="Conectar BD — AuditDB", layout="wide", page_icon="🔌")
 st.markdown(GLOBAL_CSS, unsafe_allow_html=True)
 
 if not st.session_state.get("autenticado", False):
     st.markdown("""
     <div style="text-align:center; padding:3rem; color:#475569;">
-        <div style="font-size:2rem; margin-bottom:1rem;"></div>
+        <div style="font-size:2rem; margin-bottom:1rem;">🔒</div>
         <p>Acceso denegado. <a href="/" style="color:#3b82f6;">Inicia sesión</a></p>
     </div>
     """, unsafe_allow_html=True)
     st.stop()
 
-page_header( "Conectar Base de Datos", "Configura la conexión para inyectar el motor de auditoría")
+page_header("🔌", "Conectar Base de Datos", "Configura la conexión para inyectar el motor de auditoría")
 
 # ===== MOTOR BADGE HELPER =====
 MOTOR_ICONS = {"PostgreSQL": "🐘", "MySQL": "🐬", "SQLite": "🗂️", "MongoDB": "🍃"}
