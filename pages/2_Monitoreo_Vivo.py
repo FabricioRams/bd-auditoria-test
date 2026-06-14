@@ -11,12 +11,12 @@ st.markdown(GLOBAL_CSS, unsafe_allow_html=True)
 
 if not st.session_state.get("autenticado", False):
     st.markdown("""<div style="text-align:center; padding:3rem; color:#475569;">
-        <div style="font-size:2rem; margin-bottom:1rem;">🔒</div>
+        <div style="font-size:2rem; margin-bottom:1rem;"></div>
         <p>Acceso denegado. <a href="/" style="color:#3b82f6;">Inicia sesión</a></p>
     </div>""", unsafe_allow_html=True)
     st.stop()
 
-page_header("📡", "Monitoreo en Vivo", "Registro de cambios en tiempo real")
+page_header("Monitoreo en Vivo", "Registro de cambios en tiempo real")
 
 # ===== CARGAR DATOS =====
 try:
@@ -39,7 +39,7 @@ except Exception as exc:
 # ===== BARRA SUPERIOR =====
 top_col1, top_col2, top_col3 = st.columns([3, 2, 1])
 with top_col1:
-    auto_refresh = st.checkbox("🔄  Recarga automática (cada 5 s)")
+    auto_refresh = st.checkbox("  Recarga automática (cada 5 s)")
     if auto_refresh:
         st_autorefresh(interval=5000, key="datarefresh")
 with top_col2:
@@ -47,7 +47,7 @@ with top_col2:
     st.markdown(f"""
     <div style="background:#0f1628; border:1px solid #1e2d4d; border-radius:8px;
                 padding:0.5rem 0.875rem; font-size:0.78rem; color:#94a3b8; margin-top:0.25rem;">
-        👤 Auditor: <strong style="color:#e2e8f0;">{user_now}</strong>
+         Auditor: <strong style="color:#e2e8f0;">{user_now}</strong>
     </div>
     """, unsafe_allow_html=True)
 with top_col3:
@@ -58,7 +58,7 @@ with top_col3:
 st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
 
 # ===== FILTROS =====
-with st.expander("⚙️  Filtros avanzados", expanded=True):
+with st.expander("  Filtros avanzados", expanded=True):
     col_f1, col_f2, col_f3, col_f4 = st.columns(4)
 
     fecha_min = df["solo_fecha"].min()
@@ -111,7 +111,7 @@ if not df_filtrado.empty:
         st.markdown(f"""
         <div style="background:#ef444415; border:1px solid #ef444440; border-left:3px solid #ef4444;
                     border-radius:8px; padding:0.75rem 1rem; margin-bottom:0.5rem; font-size:0.875rem;">
-            🚨 <strong style="color:#ef4444;">Eliminaciones masivas</strong> — Se detectaron <strong>{num_deletes}</strong> operaciones DELETE en el rango seleccionado.
+             <strong style="color:#ef4444;">Eliminaciones masivas</strong> — Se detectaron <strong>{num_deletes}</strong> operaciones DELETE en el rango seleccionado.
         </div>
         """, unsafe_allow_html=True)
         alertas += 1
@@ -123,7 +123,7 @@ if not df_filtrado.empty:
         st.markdown(f"""
         <div style="background:#f59e0b15; border:1px solid #f59e0b40; border-left:3px solid #f59e0b;
                     border-radius:8px; padding:0.75rem 1rem; margin-bottom:0.5rem; font-size:0.875rem;">
-            ⚠️ <strong style="color:#f59e0b;">Horario inusual</strong> — {len(horario_inusual)} operaciones entre las 11:59 PM y 06:00 AM.
+             <strong style="color:#f59e0b;">Horario inusual</strong> — {len(horario_inusual)} operaciones entre las 11:59 PM y 06:00 AM.
         </div>
         """, unsafe_allow_html=True)
         alertas += 1
@@ -133,7 +133,7 @@ if not df_filtrado.empty:
             st.markdown(f"""
             <div style="background:#f59e0b15; border:1px solid #f59e0b40; border-left:3px solid #f59e0b;
                         border-radius:8px; padding:0.75rem 1rem; margin-bottom:0.5rem; font-size:0.875rem;">
-                ⚠️ <strong style="color:#f59e0b;">Actividad anormal</strong> — El usuario <code style="background:#050810; padding:1px 5px; border-radius:3px;">{user}</code> realizó <strong>{count}</strong> operaciones.
+                 <strong style="color:#f59e0b;">Actividad anormal</strong> — El usuario <code style="background:#050810; padding:1px 5px; border-radius:3px;">{user}</code> realizó <strong>{count}</strong> operaciones.
             </div>
             """, unsafe_allow_html=True)
             alertas += 1
@@ -142,7 +142,7 @@ if alertas == 0:
     st.markdown("""
     <div style="background:#10b98115; border:1px solid #10b98140; border-left:3px solid #10b981;
                 border-radius:8px; padding:0.75rem 1rem; font-size:0.875rem;">
-        ✅ <strong style="color:#10b981;">Sin anomalías detectadas</strong> — El sistema opera dentro de los parámetros normales.
+         <strong style="color:#10b981;">Sin anomalías detectadas</strong> — El sistema opera dentro de los parámetros normales.
     </div>
     """, unsafe_allow_html=True)
 
@@ -192,7 +192,7 @@ st.markdown("<hr>", unsafe_allow_html=True)
 
 # ===== REGISTRO DETALLADO =====
 section_title("Registro detallado de auditoría")
-tab_tabla, tab_logs = st.tabs(["📋  Vista de tabla", "🖥️  Consola de logs"])
+tab_tabla, tab_logs = st.tabs(["  Vista de tabla", "  Consola de logs"])
 
 with tab_tabla:
     st.dataframe(df_filtrado.drop(columns=["solo_fecha"]), use_container_width=True, hide_index=True)
@@ -228,7 +228,7 @@ def convert_df(df_to_convert):
 
 csv_data = convert_df(df_filtrado.drop(columns=["solo_fecha"]))
 st.download_button(
-    label="⬇️  Exportar reporte CSV",
+    label="⬇  Exportar reporte CSV",
     data=csv_data,
     file_name="reporte_auditoria.csv",
     mime="text/csv",

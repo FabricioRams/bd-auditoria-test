@@ -5,12 +5,12 @@ import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from utils.styles import GLOBAL_CSS, page_header, section_title
 
-st.set_page_config(page_title="Panel Admin — AuditDB", layout="wide", page_icon="⚙️")
+st.set_page_config(page_title="Panel Admin — AuditDB", layout="wide", page_icon="")
 st.markdown(GLOBAL_CSS, unsafe_allow_html=True)
 
 if not st.session_state.get("autenticado", False):
     st.markdown("""<div style="text-align:center; padding:3rem; color:#475569;">
-        <div style="font-size:2rem; margin-bottom:1rem;">🔒</div>
+        <div style="font-size:2rem; margin-bottom:1rem;"></div>
         <p>Acceso denegado. <a href="/" style="color:#3b82f6;">Inicia sesión</a></p>
     </div>""", unsafe_allow_html=True)
     st.stop()
@@ -18,14 +18,14 @@ if not st.session_state.get("autenticado", False):
 if st.session_state.get("rol") != "admin":
     st.markdown("""
     <div style="text-align:center; padding:3rem;">
-        <div style="font-size:2.5rem; margin-bottom:1rem;">🛡️</div>
+        <div style="font-size:2.5rem; margin-bottom:1rem;"></div>
         <h3 style="color:#ef4444; margin:0;">Acceso restringido</h3>
         <p style="color:#475569; font-size:0.875rem; margin-top:0.5rem;">Esta sección es exclusiva para administradores del sistema.</p>
     </div>
     """, unsafe_allow_html=True)
     st.stop()
 
-page_header("⚙️", "Panel de Administración", "Gestión de usuarios, accesos y métricas del sistema")
+page_header("", "Panel de Administración", "Gestión de usuarios, accesos y métricas del sistema")
 
 db_path = "saas_admin.db"
 
@@ -88,14 +88,14 @@ with col_acc:
     with act1:
         csv_data = df_accesos.to_csv(index=False).encode('utf-8')
         st.download_button(
-            label="⬇️  Exportar historial CSV",
+            label="⬇ Exportar historial CSV",
             data=csv_data,
             file_name='historial_accesos.csv',
             mime='text/csv',
             use_container_width=True
         )
     with act2:
-        if st.button("🗑️  Vaciar historial", use_container_width=True, type="secondary"):
+        if st.button(" Vaciar historial", use_container_width=True, type="secondary"):
             try:
                 conn = sqlite3.connect(db_path)
                 cursor = conn.cursor()
@@ -158,7 +158,7 @@ with col_chart:
     else:
         st.markdown("""
         <div style="text-align:center; padding:2rem; color:#334155;">
-            <div style="font-size:1.5rem; margin-bottom:0.5rem;">📊</div>
+            <div style="font-size:1.5rem; margin-bottom:0.5rem;"></div>
             <p style="font-size:0.825rem; margin:0;">Sin conexiones registradas aún</p>
         </div>
         """, unsafe_allow_html=True)
@@ -198,7 +198,7 @@ with st.expander("➕ Crear nuevo usuario"):
                 except Exception as e:
                     st.error(f"Error: {e}")
 
-with st.expander("🗑️ Eliminar usuario"):
+with st.expander(" Eliminar usuario"):
     usuarios_eliminables = [u for u in df_usuarios["username"].tolist() if u != st.session_state.get("usuario_actual")]
     if usuarios_eliminables:
         del_user = st.selectbox("Selecciona el usuario a eliminar", usuarios_eliminables)

@@ -9,13 +9,13 @@ st.markdown(GLOBAL_CSS, unsafe_allow_html=True)
 if not st.session_state.get("autenticado", False):
     st.markdown("""
     <div style="text-align:center; padding:3rem; color:#475569;">
-        <div style="font-size:2rem; margin-bottom:1rem;">🔒</div>
+        <div style="font-size:2rem; margin-bottom:1rem;"></div>
         <p>Acceso denegado. <a href="/" style="color:#3b82f6;">Inicia sesión</a></p>
     </div>
     """, unsafe_allow_html=True)
     st.stop()
 
-page_header("🔌", "Conectar Base de Datos", "Configura la conexión para inyectar el motor de auditoría")
+page_header( "Conectar Base de Datos", "Configura la conexión para inyectar el motor de auditoría")
 
 # ===== MOTOR BADGE HELPER =====
 MOTOR_ICONS = {"PostgreSQL": "🐘", "MySQL": "🐬", "SQLite": "🗂️", "MongoDB": "🍃"}
@@ -221,7 +221,7 @@ if st.session_state.get("db_creds"):
             Ejecutará <code style="background:#050810; padding:2px 6px; border-radius:4px; color:#06b6d4;">{sql_filename}</code> para crear la tabla <code style="background:#050810; padding:2px 6px; border-radius:4px; color:#06b6d4;">AUDITORIA_LOGS</code> y las funciones necesarias.
         </div>
         """, unsafe_allow_html=True)
-        if st.button(f"⚙️  Instalar motor de auditoría", type="primary"):
+        if st.button(f" Instalar motor de auditoría", type="primary"):
             sql_file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "sql_scripts", sql_filename)
             try:
                 with open(sql_file_path, "r", encoding="utf-8") as f:
@@ -286,7 +286,7 @@ if st.session_state.get("db_creds"):
 
         if tablas:
             tablas_seleccionadas = st.multiselect("Tablas disponibles:", tablas, placeholder="Selecciona una o más tablas...")
-            btn_text = "▶️  Iniciar Change Stream (MongoDB)" if motor_actual == "MongoDB" else "💉  Inyectar triggers de auditoría"
+            btn_text = "▶  Iniciar Change Stream (MongoDB)" if motor_actual == "MongoDB" else "Inyectar triggers de auditoría"
 
             if st.button(btn_text, disabled=not tablas_seleccionadas):
                 if tablas_seleccionadas:

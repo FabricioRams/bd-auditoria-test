@@ -9,12 +9,12 @@ st.markdown(GLOBAL_CSS, unsafe_allow_html=True)
 
 if not st.session_state.get("autenticado", False):
     st.markdown("""<div style="text-align:center; padding:3rem; color:#475569;">
-        <div style="font-size:2rem; margin-bottom:1rem;">🔒</div>
+        <div style="font-size:2rem; margin-bottom:1rem;"></div>
         <p>Acceso denegado. <a href="/" style="color:#3b82f6;">Inicia sesión</a></p>
     </div>""", unsafe_allow_html=True)
     st.stop()
 
-page_header("🔬", "Validador de Sintaxis SQL/NoSQL", "Verifica consultas antes de ejecutarlas en producción")
+page_header("", "Validador de Sintaxis SQL/NoSQL", "Verifica consultas antes de ejecutarlas en producción")
 
 # ===== EJEMPLOS RÁPIDOS =====
 section_title("Ejemplos rápidos")
@@ -30,7 +30,7 @@ EJEMPLOS = {
 ej_cols = st.columns(3)
 for i, (label, query) in enumerate(EJEMPLOS.items()):
     with ej_cols[i % 3]:
-        if st.button(f"📝 {label}", use_container_width=True, key=f"ej_{i}"):
+        if st.button(f" {label}", use_container_width=True, key=f"ej_{i}"):
             st.session_state["query_preload"] = query
 
 # ===== EDITOR =====
@@ -51,14 +51,14 @@ with ctrl1:
     tipo_input = st.selectbox(
         "Tipo",
         ["Auto", "sql", "nosql"],
-        format_func=lambda x: {"Auto": "🤖 Detección automática", "sql": "🐘 SQL", "nosql": "🍃 NoSQL (MongoDB)"}[x]
+        format_func=lambda x: {"Auto": " Detección automática", "sql": " SQL", "nosql": " NoSQL (MongoDB)"}[x]
     )
 with ctrl2:
     st.markdown("<div style='height:1.6rem'></div>", unsafe_allow_html=True)
-    validar_btn = st.button("▶️  Validar consulta", type="primary", use_container_width=True)
+    validar_btn = st.button("▶  Validar consulta", type="primary", use_container_width=True)
 with ctrl3:
     st.markdown("<div style='height:1.6rem'></div>", unsafe_allow_html=True)
-    limpiar_btn = st.button("🗑️  Limpiar", use_container_width=True)
+    limpiar_btn = st.button("  Limpiar", use_container_width=True)
     if limpiar_btn:
         st.session_state["query_preload"] = ""
         st.rerun()
@@ -89,7 +89,7 @@ if validar_btn:
                         <div style="background:#10b98115; border:1px solid #10b98140; border-left:3px solid #10b981;
                                     border-radius:10px; padding:1rem 1.25rem; margin:0.75rem 0;">
                             <div style="font-weight:700; color:#10b981; font-size:1rem; margin-bottom:0.4rem;">
-                                ✅ Consulta válida
+                                 Consulta válida
                             </div>
                             <div style="font-size:0.825rem; color:#94a3b8;">
                                 Dialecto detectado: <strong style="color:#e2e8f0;">{data.get('dialect', 'N/A')}</strong> 
@@ -124,7 +124,7 @@ if validar_btn:
                         st.markdown("""
                         <div style="background:#ef444415; border:1px solid #ef444440; border-left:3px solid #ef4444;
                                     border-radius:10px; padding:1rem 1.25rem; margin:0.75rem 0;">
-                            <div style="font-weight:700; color:#ef4444; font-size:1rem;">❌ Errores de sintaxis detectados</div>
+                            <div style="font-weight:700; color:#ef4444; font-size:1rem;"> Errores de sintaxis detectados</div>
                         </div>
                         """, unsafe_allow_html=True)
 
@@ -132,7 +132,7 @@ if validar_btn:
                         for error in errores:
                             linea = error.get('line', '?')
                             columna = error.get('column', '?')
-                            with st.expander(f"⚠️ Error — Línea {linea}, col. {columna}", expanded=True):
+                            with st.expander(f" Error — Línea {linea}, col. {columna}", expanded=True):
                                 st.markdown(f"""
                                 <div style="font-size:0.825rem; line-height:1.7;">
                                     <div><span style="color:#475569; font-weight:600; text-transform:uppercase; font-size:0.7rem; letter-spacing:0.06em;">Mensaje</span><br>

@@ -37,7 +37,7 @@ for col, fname, label in [
                 <div style="font-size:0.8rem; font-weight:600; color:#94a3b8; margin-bottom:0.5rem;">📄 {label}</div>
             """, unsafe_allow_html=True)
             st.download_button(
-                label=f"⬇️  Descargar {fname}",
+                label=f"⬇  Descargar {fname}",
                 data=datos,
                 file_name=fname,
                 mime="text/csv",
@@ -75,7 +75,7 @@ if archivo_subido is not None:
         st.markdown(f"""
         <div style="background:#10b98115; border:1px solid #10b98140; border-left:3px solid #10b981;
                     border-radius:8px; padding:0.75rem 1.25rem; margin:0.75rem 0; font-size:0.875rem;">
-            ✅ <strong style="color:#10b981;">Archivo cargado correctamente</strong> — 
+             <strong style="color:#10b981;">Archivo cargado correctamente</strong> — 
             <span style="color:#94a3b8;">{archivo_subido.name}</span>
         </div>
         """, unsafe_allow_html=True)
