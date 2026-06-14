@@ -54,7 +54,13 @@ init_db()
 
 st.markdown(
     """
-    <h1 style='text-align: center; color: #0f172a;'>
+    <style>
+    /* Ocultar links de ancla (vinculos) en los titulos */
+    h1 a, h2 a, h3 a, h4 a, h5 a, h6 a {
+        display: none !important;
+    }
+    </style>
+    <h1 style='text-align: center; color: #3b82f6;'>
         Panel de Auditoría Multi-Motor
     </h1>
     """,
@@ -69,6 +75,24 @@ if "df_externo" not in st.session_state:
     st.session_state["df_externo"] = None
 
 if not st.session_state["autenticado"]:
+    # Ocultar la barra lateral completamente antes de logearse
+    st.markdown(
+        """
+        <style>
+        [data-testid="stSidebar"] { display: none; }
+        /* Mejorar la vista del formulario de login */
+        div[data-testid="stForm"] {
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            border: 1px solid #1e293b;
+            background-color: #0f172a;
+        }
+        </style>
+        """, 
+        unsafe_allow_html=True
+    )
+    
     st.markdown("<br><br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 2, 1])
 
@@ -134,8 +158,23 @@ if not st.session_state["autenticado"]:
                                 "INSERT INTO usuarios (username, password, rol) VALUES (?, ?, ?)",
                                 (new_user, hash_password(new_pass), 'cliente')
                             )
+                            # Registrar acceso también por registro
+                            cursor.execute(
+                                "INSERT INTO registro_accesos (username, fecha_hora) VALUES (?, ?)", 
+                                (new_user, datetime.now())
+                            )
                             conn.commit()
-                            st.success("Usuario registrado exitosamente. Ahora puedes iniciar sesión en la otra pestaña.")
+                            
+                            st.success("Usuario registrado exitosamente. Ingresando...")
+                            
+                            # Iniciar sesión automáticamente
+                            st.session_state["autenticado"] = True
+                            st.session_state["usuario_actual"] = new_user
+                            st.session_state["rol"] = 'cliente'
+                            
+                            # Redirigir a conectar DB de frente
+                            st.switch_page("pages/1_Conectar_BD.py")
+                            
                         except sqlite3.IntegrityError:
                             st.error("El usuario ya existe. Por favor elige otro username.")
                         finally:
