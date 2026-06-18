@@ -31,16 +31,15 @@ ej_cols = st.columns(3)
 for i, (label, query) in enumerate(EJEMPLOS.items()):
     with ej_cols[i % 3]:
         if st.button(f" {label}", use_container_width=True, key=f"ej_{i}"):
-            st.session_state["query_preload"] = query
+            st.session_state["query_input_val"] = query
 
 # ===== EDITOR =====
 st.markdown("<div style='height:0.25rem'></div>", unsafe_allow_html=True)
 section_title("Editor de consulta")
 
-preload = st.session_state.pop("query_preload", "")
 query_input = st.text_area(
     "Consulta a validar",
-    value=preload,
+    key="query_input_val",
     height=180,
     placeholder="Escribe tu consulta SQL o MongoDB aquí...\n\nEj: SELECT * FROM usuarios WHERE activo = 1;",
     label_visibility="collapsed"
@@ -60,7 +59,7 @@ with ctrl3:
     st.markdown("<div style='height:1.6rem'></div>", unsafe_allow_html=True)
     limpiar_btn = st.button("  Limpiar", use_container_width=True)
     if limpiar_btn:
-        st.session_state["query_preload"] = ""
+        st.session_state["query_input_val"] = ""
         st.rerun()
 
 # ===== VALIDACIÓN =====
