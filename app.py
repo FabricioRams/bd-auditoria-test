@@ -1,5 +1,5 @@
 import streamlit as st
-import sqlite3
+from utils.admin_db import get_admin_connection, psycopg2
 import hashlib
 from datetime import datetime
 
@@ -9,32 +9,32 @@ def hash_password(password):
     return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
 def init_db():
-    conn = sqlite3.connect('saas_admin.db')
+    conn = get_admin_connection()
     cursor = conn.cursor()
     
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS usuarios (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
+            id SERIAL PRIMARY KEY,
+            username VARCHAR(255) UNIQUE NOT NULL,
             password TEXT NOT NULL,
-            rol TEXT NOT NULL
+            rol VARCHAR(50) NOT NULL
         )
     ''')
     
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS registro_accesos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL,
-            fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP
+            id SERIAL PRIMARY KEY,
+            username VARCHAR(255) NOT NULL,
+            fecha_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
     
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS conexiones_guardadas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL,
-            alias TEXT NOT NULL,
-            motor TEXT NOT NULL,
+            id SERIAL PRIMARY KEY,
+            username VARCHAR(255) NOT NULL,
+            alias VARCHAR(255) NOT NULL,
+            motor VARCHAR(50) NOT NULL,
             creds_json TEXT NOT NULL
         )
     ''')
@@ -43,7 +43,7 @@ def init_db():
     cursor.execute("SELECT COUNT(*) FROM usuarios")
     if cursor.fetchone()[0] == 0:
         cursor.execute(
-            "INSERT INTO usuarios (username, password, rol) VALUES (?, ?, ?)",
+            "INSERT INTO usuarios (username, password, rol) VALUES (%s, %s, %s)",
             ('admin', hash_password('admin123'), 'admin')
         )
     
@@ -112,9 +112,9 @@ if not st.session_state["autenticado"]:
                     if not usuario_input or not password_input:
                         st.error("Por favor completa todos los campos.")
                     else:
-                        conn = sqlite3.connect('saas_admin.db')
+                        conn = get_admin_connection()
                         cursor = conn.cursor()
-                        cursor.execute("SELECT password, rol FROM usuarios WHERE username = ?", (usuario_input,))
+                        cursor.execute("SELECT password, rol FROM usuarios WHERE username = %s", (usuario_input,))
                         result = cursor.fetchone()
                         
                         if result and result[0] == hash_password(password_input):
@@ -122,7 +122,7 @@ if not st.session_state["autenticado"]:
                             
                             # Registrar acceso
                             cursor.execute(
-                                "INSERT INTO registro_accesos (username, fecha_hora) VALUES (?, ?)", 
+                                "INSERT INTO registro_accesos (username, fecha_hora) VALUES (%s, %s)", 
                                 (usuario_input, datetime.now())
                             )
                             conn.commit()
@@ -151,16 +151,16 @@ if not st.session_state["autenticado"]:
                     elif new_pass != new_pass_confirm:
                         st.error("Las contraseñas no coinciden.")
                     else:
-                        conn = sqlite3.connect('saas_admin.db')
+                        conn = get_admin_connection()
                         cursor = conn.cursor()
                         try:
                             cursor.execute(
-                                "INSERT INTO usuarios (username, password, rol) VALUES (?, ?, ?)",
+                                "INSERT INTO usuarios (username, password, rol) VALUES (%s, %s, %s)",
                                 (new_user, hash_password(new_pass), 'cliente')
                             )
                             # Registrar acceso también por registro
                             cursor.execute(
-                                "INSERT INTO registro_accesos (username, fecha_hora) VALUES (?, ?)", 
+                                "INSERT INTO registro_accesos (username, fecha_hora) VALUES (%s, %s)", 
                                 (new_user, datetime.now())
                             )
                             conn.commit()
@@ -175,7 +175,7 @@ if not st.session_state["autenticado"]:
                             # Redirigir a conectar DB de frente
                             st.switch_page("pages/1_Conectar_BD.py")
                             
-                        except sqlite3.IntegrityError:
+                        except psycopg2.IntegrityError:
                             st.error("El usuario ya existe. Por favor elige otro username.")
                         finally:
                             conn.close()
@@ -183,5 +183,5 @@ if not st.session_state["autenticado"]:
     st.stop()
 
 # --- MENSAJE DE BIENVENIDA AL ENTRAR ---
-st.success(f"✅ Bienvenido, {st.session_state.get('usuario_actual', 'usuario')} (Rol: {st.session_state.get('rol', 'cliente')}).")
-st.info("👈 Usa el menú lateral izquierdo para navegar entre las opciones del sistema.")
+st.success(f" Bienvenido, {st.session_state.get('usuario_actual', 'usuario')} (Rol: {st.session_state.get('rol', 'cliente')}).")
+st.info("<- Usa el menú lateral izquierdo para navegar entre las opciones del sistema.")

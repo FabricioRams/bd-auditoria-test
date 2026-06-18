@@ -2,6 +2,7 @@ import streamlit as st
 import os, sys, json, sqlite3
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from utils.styles import GLOBAL_CSS, page_header, section_title
+from utils.admin_db import get_admin_connection
 
 st.set_page_config(page_title="Conectar BD — AuditDB", layout="wide", page_icon="🔌")
 st.markdown(GLOBAL_CSS, unsafe_allow_html=True)
@@ -25,9 +26,9 @@ MOTOR_COLORS = {"PostgreSQL": "#336791", "MySQL": "#f29111", "SQLite": "#00aff4"
 usuario_actual = st.session_state.get("usuario_actual", "")
 conexiones_guardadas = []
 try:
-    conn_admin = sqlite3.connect('saas_admin.db')
+    conn_admin = get_admin_connection()
     cursor = conn_admin.cursor()
-    cursor.execute("SELECT id, alias, motor, creds_json FROM conexiones_guardadas WHERE username = ?", (usuario_actual,))
+    cursor.execute("SELECT id, alias, motor, creds_json FROM conexiones_guardadas WHERE username = %s", (usuario_actual,))
     conexiones_guardadas = cursor.fetchall()
     conn_admin.close()
 except Exception:
@@ -167,10 +168,10 @@ with st.expander("🔗 Configurar nueva conexión", expanded=not bool(st.session
 
                 if guardar_nueva:
                     try:
-                        conn_admin = sqlite3.connect('saas_admin.db')
+                        conn_admin = get_admin_connection()
                         cursor = conn_admin.cursor()
                         cursor.execute(
-                            "INSERT INTO conexiones_guardadas (username, alias, motor, creds_json) VALUES (?, ?, ?, ?)",
+                            "INSERT INTO conexiones_guardadas (username, alias, motor, creds_json) VALUES (%s, %s, %s, %s)",
                             (usuario_actual, alias_nueva, motor, json.dumps(creds))
                         )
                         conn_admin.commit()

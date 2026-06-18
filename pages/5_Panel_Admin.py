@@ -1,5 +1,5 @@
 import streamlit as st
-import sqlite3
+from utils.admin_db import get_admin_connection, psycopg2
 import pandas as pd
 import os, sys
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
@@ -27,11 +27,9 @@ if st.session_state.get("rol") != "admin":
 
 page_header("O", "Panel de Administración", "Gestión de usuarios, accesos y métricas del sistema")
 
-db_path = "saas_admin.db"
-
 @st.cache_data(ttl=5)
 def get_admin_data():
-    conn = sqlite3.connect(db_path)
+    conn = get_admin_connection()
     df_usuarios = pd.read_sql_query("SELECT id, username, rol FROM usuarios", conn)
     df_accesos = pd.read_sql_query("SELECT id, username, fecha_hora FROM registro_accesos ORDER BY fecha_hora DESC", conn)
     try:
@@ -97,7 +95,7 @@ with col_acc:
     with act2:
         if st.button(" Vaciar historial", use_container_width=True, type="secondary"):
             try:
-                conn = sqlite3.connect(db_path)
+                conn = get_admin_connection()
                 cursor = conn.cursor()
                 cursor.execute("DELETE FROM registro_accesos")
                 conn.commit()
@@ -184,16 +182,16 @@ with st.expander("➕ Crear nuevo usuario"):
             else:
                 import hashlib
                 try:
-                    conn = sqlite3.connect(db_path)
+                    conn = get_admin_connection()
                     cursor = conn.cursor()
                     hashed = hashlib.sha256(new_password.encode()).hexdigest()
-                    cursor.execute("INSERT INTO usuarios (username, password, rol) VALUES (?, ?, ?)", (new_username, hashed, new_rol))
+                    cursor.execute("INSERT INTO usuarios (username, password, rol) VALUES (%s, %s, %s)", (new_username, hashed, new_rol))
                     conn.commit()
                     conn.close()
                     get_admin_data.clear()
                     st.success(f"Usuario **{new_username}** creado con rol **{new_rol}**.")
                     st.rerun()
-                except sqlite3.IntegrityError:
+                except psycopg2.IntegrityError:
                     st.error("Ese nombre de usuario ya existe.")
                 except Exception as e:
                     st.error(f"Error: {e}")
@@ -204,9 +202,9 @@ with st.expander(" Eliminar usuario"):
         del_user = st.selectbox("Selecciona el usuario a eliminar", usuarios_eliminables)
         if st.button(f"Eliminar a {del_user}", type="secondary"):
             try:
-                conn = sqlite3.connect(db_path)
+                conn = get_admin_connection()
                 cursor = conn.cursor()
-                cursor.execute("DELETE FROM usuarios WHERE username = ?", (del_user,))
+                cursor.execute("DELETE FROM usuarios WHERE username = %s", (del_user,))
                 conn.commit()
                 conn.close()
                 get_admin_data.clear()
