@@ -19,20 +19,20 @@ page_header("📐", "Validador de Normalización", "Diagnóstico automático de 
 # ===== EJEMPLOS RÁPIDOS =====
 section_title("Ejemplos rápidos (Haz clic para probar)")
 EJEMPLOS = {
-    "Violación 1FN": """CREATE TABLE ordenes (
+    "Violación Ejemplo1": """CREATE TABLE ordenes (
     orden_id INT PRIMARY KEY,
     cliente_nombre VARCHAR(100),
     producto_1 VARCHAR(50),
     producto_2 VARCHAR(50)
 );""",
-    "Violación 2FN": """CREATE TABLE detalle_orden (
+    "Violación Ejemplo2": """CREATE TABLE detalle_orden (
     orden_id INT,
     producto_id INT,
     producto_nombre VARCHAR(100),
     cantidad INT,
     PRIMARY KEY(orden_id, producto_id)
 );""",
-    "Violación 3FN": """CREATE TABLE clientes (
+    "Violación Ejemplo3": """CREATE TABLE clientes (
     id INT PRIMARY KEY,
     nombre VARCHAR(100),
     ciudad VARCHAR(50),
