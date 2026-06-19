@@ -162,7 +162,7 @@ if validar_btn:
                                 st.info(f"**Tabla `{m.get('tabla', '?')}` - {m.get('tipo', 'Mejora')}**: {m.get('mensaje', '')}")
 
                     else:
-                        st.error(f"El validador devolvió un error (pero con status 200).")
+                        st.error(f"El validador devolvió un error (pero con status 200): {data.get('error', {}).get('message', data)}")
 
                 elif response.status_code in [400, 500]:
                     data = response.json()
